@@ -185,11 +185,14 @@ def test_reveal_explorer_and_code(isolated, monkeypatch):
     project = isolated / "api"
     project.mkdir()
     session = make_session("claude", "id", project)
-    log, _fake = install_fakes(isolated, monkeypatch)
+    log, fake = install_fakes(isolated, monkeypatch)
+    # wslpath есть только в WSL: заглушка печатает путь Windows.
+    windows = "\\\\wsl.localhost\\Ubuntu\\api"
+    (fake / "wslpath").write_text(f"#!/bin/sh\nprintf '%s\\n' '{windows}'\n", encoding="utf-8")
+    (fake / "wslpath").chmod(0o755)
     reveal(session, "explorer")
     reveal(session, "vscode")
     calls = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
-    windows = subprocess.check_output(["wslpath", "-w", str(project)], text=True).strip()
     assert calls[0] == ["explorer.exe", windows]
     assert calls[1] == ["code", "--remote", "wsl+Ubuntu", str(project)]
 

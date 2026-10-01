@@ -9,6 +9,7 @@ import sys
 import textwrap
 import threading
 import time
+from pathlib import Path
 
 from ai_threads.jobs import Job, Jobs, TAIL_CHARS
 
@@ -128,13 +129,19 @@ def _tree_script(marker: str) -> str:
 
 
 def _pid_alive(pid: int) -> bool:
+    """Процесс жив и не зомби. Убитый «внук» может остаться зомби, пока его не уберёт
+    новый родитель: на раннерах CI это не всегда происходит сразу."""
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
     except PermissionError:
         return True
-    return True
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text()
+    except OSError:
+        return False
+    return stat[stat.rfind(")") + 2:].split()[0] != "Z"
 
 
 def test_run_process_timeout_kills_whole_tree(tmp_path):
