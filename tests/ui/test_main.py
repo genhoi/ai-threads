@@ -397,6 +397,8 @@ def test_running_job_is_visible_before_first_event(page, ui_server):
     expect(page.get_by_test_id('summary-run')).to_have_count(0)
     assert not calls
     ui_server.store.set_summary(KEY, SUMMARY)
+    # Панель хода видна до запроса событий: дождаться его, а заодно убедиться, что поток один.
+    wait_pending(page, pending)
     pending[0].fulfill(content_type='application/x-ndjson', body=json.dumps({'n': 1, 'type': 'result', 'result': SUMMARY}) + '\n')
     expect(page.get_by_test_id('summary-text')).to_have_text(SUMMARY['summary'])
 

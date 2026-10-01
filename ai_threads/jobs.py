@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import contextvars
 import os
 import re
 import signal
@@ -15,10 +16,16 @@ import time
 from collections import deque
 from typing import Callable
 
+from . import i18n
+
 #: Длина хвоста вывода процесса в событиях об ошибках.
 TAIL_CHARS = 1200
 
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+
+i18n.add({
+    "jobs.unexpected": {"ru": "Неожиданная ошибка задания: {error}", "en": "Unexpected job error: {error}"},
+})
 
 
 class _Tail:
@@ -221,7 +228,9 @@ class Job:
 
         readers = []
         for stream, is_stdout in ((process.stdout, True), (process.stderr, False)):
-            thread = threading.Thread(target=read, args=(stream, is_stdout), daemon=True)
+            # on_line публикует события задания: читатель работает в контексте задания, с его языком.
+            context = contextvars.copy_context()
+            thread = threading.Thread(target=context.run, args=(read, stream, is_stdout), daemon=True)
             thread.start()
             readers.append(thread)
 
@@ -260,7 +269,9 @@ class Jobs:
                 return existing
             job = Job(job_id, kind, key)
             self._jobs[job_id] = job
-        thread = threading.Thread(target=self._run, args=(job, target),
+        # Задание наследует контекст запроса, который его запустил: прежде всего язык сообщений.
+        context = contextvars.copy_context()
+        thread = threading.Thread(target=context.run, args=(self._run, job, target),
                                   name=f"ai-threads-job-{job_id}", daemon=True)
         thread.start()
         return job
@@ -270,7 +281,7 @@ class Jobs:
             target(job)
         except Exception as exc:  # задание не должно ронять поток молча
             if not job.cancelled:
-                job.emit({"type": "error", "message": f"Неожиданная ошибка задания: {exc}"})
+                job.emit({"type": "error", "message": i18n.t("jobs.unexpected", error=exc)})
         finally:
             job._mark_done()
 

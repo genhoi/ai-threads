@@ -9,8 +9,8 @@ collects the logs of Claude Code, Codex, Grok, Kimi, ZCode and Cursor Agent into
 titles and conversations, and gives you the command that resumes a session in your terminal. On
 request, an agent writes a summary of one session or of all sessions from the last 3–5 days.
 
-The interface is in Russian only. Summaries can be written in English: set `language` to `en` in the
-[settings](#settings).
+The interface is in English and Russian. Nit follows your browser language and falls back to English;
+the `language` [setting](#settings) fixes it.
 
 ![Main screen](docs/images/screen-main.png)
 
@@ -18,12 +18,25 @@ The interface is in Russian only. Summaries can be written in English: set `lang
 
 - One list of sessions from all agents: project, branch, time, the agent's last reply. You can rename
   a session, pin it to the top, mark it as done or hide it from the list.
-- Quick search by title, branch, path, ID and summary. The "+ переписка" (+ conversation) toggle also
-  searches the conversation text, within the last 512 KB of each log.
-- Smart search in plain words: "find sessions about moving message_profile to partitions in claude
+- Quick search by title, branch, path, ID and summary. The "+ conversation" toggle also searches the
+  conversation text, within the last 512 KB of each log.
+- Full log search without an agent: type a query and pick "Search full logs" under the search field,
+  or press Enter when the quick search found nothing. Nit reads whole logs, including command output
+  and files the agent read, and shows a snippet around each match. It takes a few seconds and shows its
+  progress.
+- Smart search in plain words: type the request and pick "Ask the agent" under the search field or
+  press Ctrl+Enter, for example "find sessions about moving message_profile to partitions in claude
   code and codex". An agent turns the request into search terms plus filters by agent, project
   and date. Nit looks for the terms in the logs, then the agent picks the matching sessions and says why
-  each one fits. It usually takes 1–3 minutes.
+  each one fits. A one-word query such as a ticket number skips the first step. It usually takes 1–3
+  minutes; the sessions found by the terms show up before the agent finishes.
+- The agent's work opens on the right, like a session: what Nit sent to the agent, its reasoning when
+  the CLI reports it, the files it reads, the commands it runs and its answers, live. When it is done,
+  you can write to the agent in the same session, right on the page or in a terminal. The same agent
+  log is available for summaries.
+- A choice of agent, model and reasoning effort next to "Ask the agent" and "Summarize". By default Nit
+  uses what is configured in the CLI, and the model list comes from the CLI itself, so new models show
+  up without changing Nit's settings.
 - A ready command to resume a session, such as `cd -- <folder> && codex resume <id>`. A checkbox in
   the settings adds the agent's flag for running without approval prompts.
 - A script that restores several sessions at once: Windows Terminal tabs (in WSL), tmux windows or
@@ -33,12 +46,14 @@ The interface is in Russian only. Summaries can be written in English: set `lang
   your reply, and the header counts the sessions waiting for you. For Grok, it shows only that the
   session is running. Other agents do not report their status.
 - A session summary: a short title, what was done, the next step and up to three related sessions.
-  The "Сводка" (Digest) page sums up the last 3, 4 or 5 days by project and lists what is left to do.
+  The Digest page sums up the last 3, 4 or 5 days by project and lists what is left to do.
   Summaries are written by an installed CLI: Kimi, Claude Code, Codex or Grok.
-- Automatic runs (`codex exec`, `claude -p`, `grok -p`, `kimi -p`) are not shown in "Мои" (Mine), only
-  in "Все" (All). Other agents usually start them for reviews and summaries, and so does Nit itself.
+- Automatic runs (`codex exec`, `claude -p`, `grok -p`, `kimi -p`) are not shown in Mine, only in All.
+  Other agents usually start them for reviews and summaries, and so does Nit itself.
 
 ![Smart search](docs/images/screen-search.png)
+
+![Agent log](docs/images/screen-agent.png)
 
 ![Digest for several days](docs/images/screen-digest.png)
 
@@ -85,8 +100,8 @@ changed.
 Change settings on the settings screen (the gear in the header) or in the file
 `~/.config/ai-threads/settings.json`. The folder follows `XDG_CONFIG_HOME`, and `AI_THREADS_CONFIG`
 sets the full path to the file. The file needs only the values that differ from the defaults. For
-example, to resume Codex sessions without approval prompts and to have Claude Code write session
-summaries in English:
+example, to resume Codex sessions without approval prompts, have Claude Code write session summaries
+and always use the English interface:
 
 ```json
 {
@@ -111,9 +126,8 @@ In the field names, `<id>` is the agent ID from the table above.
 | `summary.agent`, `digest.agent` | `auto` | who writes session summaries and multi-day digests: `kimi`, `claude`, `codex`, `grok`. `auto` picks the first installed one in this order |
 | `search.agent` | `auto` | who parses smart search requests and picks sessions; same values |
 | `summary.timeout`, `digest.timeout`, `search.timeout` | `300`, `900`, `300` | how many seconds to wait for the agent, from 10 to 7200 |
-| `language` | `ru` | language of summaries and smart search explanations: `ru` or `en` |
-| `kimi_model` | `kimi-code/kimi-for-coding` | model that Nit passes to Kimi |
-| `temp_dirs` | `["/tmp", "/var/tmp", "~/.local"]` | sessions started in these folders or inside them count as temporary and are not shown in "Мои" (Mine) |
+| `language` | `auto` | interface and summary language: `ru` or `en`. `auto` follows the browser and falls back to English |
+| `temp_dirs` | `["/tmp", "/var/tmp", "~/.local"]` | sessions started in these folders or inside them count as temporary and are not shown in Mine |
 
 `open_with` and `tmux_session` are not on the settings screen, only in the file. Environment variables
 win over the file: the folder variables from the agents table, and `AI_THREADS_SUMMARY_TIMEOUT`,
@@ -130,7 +144,7 @@ the settings screen.
 - Your titles, pins, marks, session summaries and multi-day digests are stored in
   `~/.local/share/ai-threads/state.json`. `AI_THREADS_DATA` changes the folder. `cache.json` in the
   same folder is a cache of parsed logs and can be deleted.
-- The "Данные" (Data) menu in the header exports your titles, pins, marks and session summaries to one
+- The Data menu in the header exports your titles, pins, marks and session summaries to one
   JSON file and imports them back. Import adds to the current data and deletes nothing, but for a
   session that is already there it replaces the title and the summary with the ones from the file.
   Multi-day digests are not exported: you can compose them again.
@@ -142,11 +156,13 @@ the settings screen.
   automatic, temporary and hidden ones, to find related sessions.
 - For a multi-day digest, the CLI gets the titles, existing summaries and short excerpts of the
   period's sessions, and it may open some of the logs in full.
-- For smart search, the CLI gets your request, the project names from the current section ("Мои"
-  (Mine) or "Все" (All)), and for each of the top 30 candidates: title, summary, first request and up
+- For smart search, the CLI gets your request, the project names from the current section (Mine or
+  All), and for each of the top 30 candidates: title, summary, first request and up
   to three conversation snippets. Command output and files the agent read are not sent, even if the
   terms were found there.
-- Logs go nowhere until you press "Составить" (Compose) or "Спросить агента" (Ask the agent).
+- Logs go nowhere until you press "Summarize" or "Ask the agent".
+- Working folders of these runs are kept for a week in `~/.local/share/ai-threads/runs`: Claude Code
+  and Kimi find a session by its folder, and without it you could not write to the agent afterwards.
 - The CLI runs without permission to change files: Kimi and Claude Code get only the `Read` tool,
   Codex and Grok run in a read-only sandbox.
 

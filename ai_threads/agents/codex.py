@@ -2,8 +2,8 @@
 
 import re
 
-from ..sources.common import HEAD_BYTES, UUID, clean_title, json_rows, timestamp, update_index
-from .base import JsonlAgent, first_title, shell_prompt
+from ..sources.common import HEAD_BYTES, UUID, clean_title, json_rows, read_json, timestamp, update_index
+from .base import JsonlAgent, first_title, shell_prompt, toml_top_level
 
 
 class Codex(JsonlAgent):
@@ -45,7 +45,7 @@ class Codex(JsonlAgent):
         values["branch"] = (meta.get("git") or {}).get("branch") or ""
         values["created"] = timestamp(meta.get("timestamp"), values["created"])
         values["auto"] = meta.get("source") == "exec"
-        values["by"] = "codex exec" if values["auto"] else "я"
+        values["by"] = "codex exec" if values["auto"] else ""
 
     def valid_id(self, sid):
         return bool(UUID.fullmatch(sid))
@@ -65,6 +65,54 @@ class Codex(JsonlAgent):
     def headless(self, program, prompt, *, instructions, add_dirs, out_file):
         argv = [program, "exec", "--json", "-s", "read-only", "--skip-git-repo-check", "-o", str(out_file), "-"]
         return argv, shell_prompt(instructions, prompt)
+
+    def models(self):
+        data = read_json(self.home() / "models_cache.json")
+        models = []
+        for item in data.get("models") or []:
+            if not isinstance(item, dict) or item.get("visibility") == "hide" or not isinstance(item.get("slug"), str):
+                continue
+            levels = [level.get("effort") for level in item.get("supported_reasoning_levels") or []
+                      if isinstance(level, dict) and isinstance(level.get("effort"), str)]
+            models.append({"id": item["slug"], "name": str(item.get("display_name") or item["slug"]),
+                           "efforts": levels, "default_effort": str(item.get("default_reasoning_level") or "")})
+        top = toml_top_level(self.home() / "config.toml")
+        return {"default_model": top.get("model", ""), "default_effort": top.get("model_reasoning_effort", ""),
+                "models": models, "efforts": []}
+
+    def choice_args(self, model, effort):
+        return (["-m", model] if model else []) + (["-c", f'model_reasoning_effort="{effort}"'] if effort else [])
+
+    def session_of(self, row):
+        if row.get("type") == "thread.started" and isinstance(row.get("thread_id"), str):
+            return row["thread_id"]
+        return ""
+
+    def trace(self, row):
+        from .base import clip
+        kind, items = row.get("type"), []
+        item = row.get("item") or {}
+        if kind == "item.started" and item.get("type") == "command_execution":
+            items.append({"kind": "tool", "tool": "shell", "text": clip(item.get("command", ""), 600)})
+        elif kind == "item.completed":
+            if item.get("type") == "command_execution":
+                output = item.get("aggregated_output") or ""
+                code = item.get("exit_code")
+                items.append({"kind": "result", "text": clip(output, 1500) + (f"\n(exit {code})" if code else "")})
+            elif item.get("type") == "reasoning" and (item.get("text") or item.get("summary")):
+                items.append({"kind": "thinking", "text": clip(item.get("text") or item.get("summary"))})
+            elif item.get("type") == "agent_message" and item.get("text"):
+                items.append({"kind": "text", "text": clip(item["text"])})
+        elif kind == "turn.completed":
+            usage = row.get("usage") or {}
+            if isinstance(usage.get("input_tokens"), int) and isinstance(usage.get("output_tokens"), int):
+                items.append({"kind": "usage", "text": f"in {usage['input_tokens']} · out {usage['output_tokens']}"})
+        return items
+
+    def reply(self, program, session_id, text, *, instructions, add_dirs, out_file):
+        argv = [program, "exec", "resume", session_id, "--json", "-c", 'sandbox_mode="read-only"',
+                "--skip-git-repo-check", "-o", str(out_file), "-"]
+        return argv, text
 
     def stream_events(self, row):
         kind = row.get("type")

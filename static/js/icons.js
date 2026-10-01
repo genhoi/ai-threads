@@ -1,5 +1,10 @@
 // Иконки и названия агентов. Реестр заполняет registerAgents() из ответа /api/config.
 // Встроенные иконки четырёх агентов — запас на время, пока конфиг не пришёл.
+import {addStrings, t} from './i18n.js';
+import strings from './lang/icons.js';
+
+addStrings(strings);
+
 const GRAY = '#5a5e66';
 const esc = (value = '') => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const TOOL_NAMES = { claude: "Claude Code", codex: "Codex", grok: "Grok", kimi: "Kimi" };
@@ -20,7 +25,7 @@ export function registerAgents(agents) {
   }
 }
 
-export function toolName(tool) { return TOOL_NAMES[tool] || tool || 'Агент'; }
+export function toolName(tool) { return TOOL_NAMES[tool] || tool || t('icons.agent'); }
 
 // Запасная иконка: скруглённый квадрат цвета агента (или серый) с первой буквой названия.
 function letterIcon(tool) {

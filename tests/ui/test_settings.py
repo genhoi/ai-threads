@@ -244,14 +244,17 @@ def test_summaries_timeout_agent_and_language(page, ui_server):
     digest.get_by_test_id('pick-claude').click()
     expect(digest.get_by_test_id('pick-claude')).to_have_attribute('aria-pressed', 'true')
     expect(digest.get_by_test_id('pick-auto')).to_have_attribute('aria-pressed', 'false')
-    page.get_by_test_id('lang-en').click()
-    expect(page.get_by_test_id('lang-en')).to_have_attribute('aria-pressed', 'true')
-    page.get_by_test_id('kimi-model').fill('kimi-code/other')
-    expect(page.get_by_test_id('save-count')).to_have_text(' · 6 изменений')
+    # язык по умолчанию — как в браузере; явный русский пишется в файл, страница остаётся русской
+    expect(page.get_by_test_id('lang-auto')).to_have_attribute('aria-pressed', 'true')
+    expect(page.get_by_test_id('lang-auto')).to_have_attribute('title', 'как в браузере')
+    page.get_by_test_id('lang-ru').click()
+    expect(page.get_by_test_id('lang-ru')).to_have_attribute('aria-pressed', 'true')
+    expect(page.get_by_test_id('lang-auto')).to_have_attribute('aria-pressed', 'false')
+    expect(page.get_by_test_id('save-count')).to_have_text(' · 5 изменений')
     save(page)
     assert stored() == {'summary': {'timeout': 420}, 'digest': {'agent': 'claude'},
                         'search': {'agent': 'codex', 'timeout': 120},
-                        'kimi_model': 'kimi-code/other', 'language': 'en'}
+                        'language': 'ru'}
     page.reload()
     expect(page.get_by_test_id('sum-summary').get_by_test_id('timeout')).to_have_value('7')
     expect(page.get_by_test_id('sum-search').get_by_test_id('timeout')).to_have_value('2')

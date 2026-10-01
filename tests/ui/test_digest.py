@@ -138,11 +138,167 @@ def test_error_retry_and_fallback(page, ui_server, monkeypatch):
     expect(page.get_by_test_id('digest-meta')).to_have_text('не составлена')
     expect(page.get_by_test_id('digest-retry')).to_be_visible()
     expect(page.get_by_test_id('digest-fallback')).to_have_text('Составить через Claude Code')
+    # журнал агента после ошибки: запрос и ошибка; номера сессии нет — ответить нельзя
+    page.get_by_test_id('digest-agent-log').click()
+    view = page.get_by_test_id('agent-session')
+    expect(view.get_by_test_id('log-error')).to_contain_text('Kimi завершился с кодом 2')
+    expect(view.get_by_test_id('log-prompt')).to_have_count(1)
+    expect(view.locator('.log-note')).to_have_text('Агент не сообщил номер сессии, поэтому ответить ему отсюда нельзя.')
+    expect(view.get_by_test_id('reply-input')).to_have_count(0)
+    view.get_by_test_id('agent-back').click()
+    expect(page.get_by_test_id('digest-error')).to_be_visible()
     monkeypatch.setenv('AI_THREADS_STUB_MODE', 'ok')
     calls = posts(page)
     page.get_by_test_id('digest-fallback').click()
     expect(page.get_by_test_id('digest-lead')).to_contain_text('Главное за период', timeout=20000)
     assert calls[-1] == ('digest', {'days': 5, 'model': 'claude'})
+
+
+def log_kinds(view):
+    return view.locator('#agent-entries > *').evaluate_all('els => els.map(e => e.dataset.testid)')
+
+
+def test_agent_log_reply_and_terminal(page, ui_server):
+    calls = posts(page)
+    open_digest(page, ui_server)
+    page.get_by_test_id('model-claude').click()
+    page.get_by_test_id('digest-run').click()
+    expect(page.get_by_test_id('digest-lead')).to_contain_text('Главное за период', timeout=20000)
+    page.get_by_test_id('digest-agent-log').click()
+    # журнал на месте сводки, как сессия агента: шапка с агентом, моделью, состоянием и временем
+    view = page.get_by_test_id('agent-session')
+    expect(page.get_by_test_id('digest-lead')).to_have_count(0)
+    expect(view.get_by_test_id('agent-back')).to_have_text('← К сводке')
+    expect(view.get_by_test_id('agent-title')).to_have_text('Сводка за 24–28 сентября')
+    expect(view.get_by_test_id('agent-name')).to_have_text('Claude Code')
+    expect(view.get_by_test_id('agent-model')).to_have_text('stub-model')
+    expect(view.get_by_test_id('agent-state')).to_have_text('закончено')
+    expect(view.get_by_test_id('agent-time')).to_have_text(re.compile(r'^\d+:\d\d$'))
+    expect(view.get_by_test_id('agent-stop')).to_have_count(0)
+    kinds = log_kinds(view)
+    assert kinds[0] == 'log-prompt' and {'log-model', 'log-tool', 'log-result', 'log-text', 'log-usage'} <= set(kinds), kinds
+    # запрос агенту — свёрнутое сообщение «Нити»; текст агента — сообщение с его подписью
+    prompt = view.get_by_test_id('log-prompt')
+    expect(prompt.locator('.speaker')).to_have_text('Нить')
+    expect(prompt.locator('summary')).to_have_text('Запрос агенту')
+    expect(prompt.locator('pre')).to_be_hidden()
+    expect(view.get_by_test_id('log-text').first.locator('.speaker')).to_have_text('Claude Code')
+    expect(view.get_by_test_id('log-model')).to_have_text('Модель: stub-model')
+    expect(view.get_by_test_id('log-tool').first).to_contain_text('Read')
+    result = view.get_by_test_id('log-result').first
+    expect(result.locator('summary')).to_have_text('Результат инструмента')
+    expect(result.locator('pre')).to_be_hidden()
+    result.locator('summary').click()
+    expect(result.locator('pre')).to_contain_text('строка журнала')
+    expect(view.get_by_test_id('log-usage')).to_contain_text('900')
+    # продолжить в терминале той же сессией
+    expect(view.locator('.reply-terminal')).to_contain_text('Продолжить в терминале:')
+    command = view.get_by_test_id('reply-command')
+    expect(command).to_contain_text('claude --resume stub-session')
+    view.get_by_test_id('reply-copy-command').click()
+    expect(view.get_by_test_id('reply-copy-command')).to_have_text('Скопировано')
+    assert command.inner_text() == '$ ' + page.evaluate('window.copiedText')
+    # ответ агенту: Shift+Enter переносит строку, Enter отправляет
+    reply = view.get_by_test_id('reply-input')
+    expect(reply).to_have_attribute('placeholder', 'Написать агенту…')
+    expect(view.get_by_test_id('reply-send')).to_be_disabled()
+    expect(reply).to_have_attribute('title', 'Enter — отправить, Shift+Enter — новая строка')
+    reply.fill('Почему так?')
+    reply.press('Shift+Enter')
+    reply.press_sequentially('Объясни')
+    expect(reply).to_have_value('Почему так?\nОбъясни')
+    reply.press('Enter')
+    you = view.get_by_test_id('log-user')
+    expect(you.locator('.speaker')).to_have_text('Я')
+    expect(you).to_contain_text('Объясни')
+    expect(reply).to_be_enabled(timeout=15000)
+    expect(reply).to_have_value('')
+    expect(reply).to_be_focused()
+    assert calls[-1] == ('agent/reply', {'agent': 'claude', 'session': 'stub-session', 'text': 'Почему так?\nОбъясни'})
+    kinds = log_kinds(view)
+    assert kinds.count('log-prompt') == 1 and 'log-text' in kinds[kinds.index('log-user'):], kinds
+    # после перезагрузки журнал с ответом на месте, пока сервер помнит задание
+    page.reload()
+    page.get_by_test_id('digest-agent-log').click()
+    expect(view.get_by_test_id('log-user')).to_contain_text('Объясни')
+    expect(view.get_by_test_id('reply-input')).to_be_enabled()
+    page.keyboard.press('Escape')
+    expect(page.get_by_test_id('digest-lead')).to_be_visible()
+    expect(page.get_by_test_id('digest-agent-log')).to_be_focused()
+    # у сводки за другой период журнала этого запуска нет
+    page.get_by_test_id('days-3').click()
+    expect(page.get_by_test_id('digest-agent-log')).to_have_count(0)
+
+
+def test_agent_log_while_running_and_stop_reply(page, ui_server, monkeypatch):
+    monkeypatch.setenv('AI_THREADS_STUB_MODE', 'slow')
+    open_digest(page, ui_server)
+    page.get_by_test_id('digest-run').click()
+    expect(page.get_by_test_id('digest-running')).to_be_visible()
+    page.get_by_test_id('digest-agent-log').click()
+    view = page.get_by_test_id('agent-session')
+    # строки приходят по ходу запуска; отвечать можно, только когда запуск закончился
+    expect(view.get_by_test_id('log-tool').first).to_contain_text('Read')
+    expect(view.get_by_test_id('agent-state')).to_have_text('идёт')
+    expect(view.get_by_test_id('agent-stop')).to_be_visible()
+    expect(view.get_by_test_id('reply-input')).to_have_count(0)
+    expect(view.get_by_test_id('reply-command')).to_contain_text('session_stub', timeout=20000)
+    expect(view.get_by_test_id('agent-state')).to_have_text('закончено')
+    # долгий ответ останавливается
+    monkeypatch.setenv('AI_THREADS_STUB_MODE', 'hang')
+    view.get_by_test_id('reply-input').fill('Ещё раз')
+    view.get_by_test_id('reply-send').click()
+    stop = view.get_by_test_id('agent-stop')
+    expect(stop).to_have_text('Остановить')
+    expect(view.get_by_test_id('reply-input')).to_be_disabled()
+    expect(view.get_by_test_id('agent-state')).to_have_text('идёт')
+    with page.expect_request(re.compile(r'/api/jobs/reply(:|%3A)\d+/cancel$')):
+        stop.click()
+    expect(view.get_by_test_id('log-stopped')).to_have_text('Остановлено.')
+    expect(view.get_by_test_id('reply-input')).to_be_enabled()
+    view.get_by_test_id('agent-back').click()
+    expect(page.get_by_test_id('digest-lead')).to_be_visible()
+
+
+def test_model_and_effort_choice(page, ui_server):
+    calls = posts(page)
+    open_digest(page, ui_server)
+    page.get_by_test_id('model-grok').click()
+    model, effort = page.get_by_test_id('digest-agent-model'), page.get_by_test_id('digest-effort')
+    expect(model.locator('option')).to_have_text(['как в CLI (grok-test)', 'grok-test', 'grok-test-fast'])
+    expect(model).to_have_attribute('aria-label', 'Модель агента')
+    expect(effort.locator('option')).to_have_text(['как в CLI', 'low', 'medium', 'high', 'xhigh'])
+    expect(effort).to_have_attribute('aria-label', 'Уровень рассуждений')
+    model.select_option('grok-test-fast')
+    effort.select_option('high')
+    page.get_by_test_id('digest-run').click()
+    expect(model).to_be_disabled()
+    expect(page.get_by_test_id('digest-lead')).to_contain_text('Главное за период', timeout=20000)
+    assert calls[-1] == ('digest', {'days': 5, 'model': 'grok', 'agent_model': 'grok-test-fast', 'effort': 'high'})
+    # у Claude Code уровни общие для всех моделей, у Kimi в этом окружении ни моделей, ни уровней
+    page.get_by_test_id('model-claude').click()
+    expect(page.get_by_test_id('digest-agent-model').locator('option')).to_have_text(
+        ['как в CLI', 'opus', 'sonnet', 'fable', 'haiku'])
+    expect(page.get_by_test_id('digest-effort').locator('option')).to_have_text(
+        ['как в CLI', 'low', 'medium', 'high', 'xhigh', 'max'])
+    page.get_by_test_id('model-kimi').click()
+    expect(page.get_by_test_id('digest-agent-model').locator('option')).to_have_text(['как в CLI'])
+    expect(page.get_by_test_id('digest-effort')).to_have_count(0)
+    # выбор запоминается для каждого агента; «как в CLI» не передаётся
+    page.reload()
+    page.get_by_test_id('model-grok').click()
+    expect(page.get_by_test_id('digest-agent-model')).to_have_value('grok-test-fast')
+    expect(page.get_by_test_id('digest-effort')).to_have_value('high')
+    page.get_by_test_id('digest-agent-model').select_option('')
+    page.get_by_test_id('digest-effort').select_option('')
+    sent = len(calls)
+    page.get_by_test_id('digest-regen').click()
+    # Кнопка может стать активной раньше, чем уйдёт запрос: ждём сам запрос.
+    for _ in range(200):
+        if len(calls) > sent:
+            break
+        page.wait_for_timeout(50)
+    assert calls[-1] == ('digest', {'days': 5, 'model': 'grok'})
 
 
 def test_running_job_survives_reload(page, ui_server, monkeypatch):

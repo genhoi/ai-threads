@@ -9,6 +9,7 @@ import json
 import sqlite3
 from pathlib import Path
 
+from .. import i18n
 from ..sources.common import clean_title, plain_line, timestamp, visible_text
 from .base import NO_TITLE, PARSER_VERSION
 from .sqlite import SqliteAgent, edge_messages, last_messages, valid_record
@@ -20,6 +21,11 @@ _SESSIONS = ("SELECT id, title, title_source, directory, time_created, time_upda
 _MESSAGES = "SELECT id, time_created, data FROM message WHERE session_id = ? ORDER BY sequence, time_created, id"
 _PARTS = "SELECT data FROM part WHERE message_id = ? ORDER BY sequence, time_created, id"
 
+i18n.add({
+    "zcode.resume_hint": {"ru": "Продолжить можно только в приложении ZCode",
+                          "en": "Can only be resumed in the ZCode app"},
+})
+
 
 class ZCode(SqliteAgent):
     id = "zcode"
@@ -30,7 +36,7 @@ class ZCode(SqliteAgent):
             'stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg>')
     home_env = "ZCODE_HOME"
     home_default = ".zcode"
-    resume_hint = "Продолжить можно только в приложении ZCode"
+    resume_hint_key = "zcode.resume_hint"
 
     def database(self) -> Path:
         return self.home() / "cli" / "db" / "db.sqlite"

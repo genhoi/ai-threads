@@ -47,6 +47,10 @@ def isolated_agents(tmp_path_factory, monkeypatch):
             monkeypatch.setenv(agent.home_env, str(root / f"absent-{agent.id}"))
     monkeypatch.setenv("AI_THREADS_CONFIG", str(root / "settings.json"))
     monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    # Язык сообщений без заголовка Accept-Language берётся из окружения: в тестах — русский.
+    monkeypatch.setenv("LANG", "ru_RU.UTF-8")
+    monkeypatch.delenv("LC_ALL", raising=False)
+    monkeypatch.delenv("LC_MESSAGES", raising=False)
 
 
 @pytest.fixture

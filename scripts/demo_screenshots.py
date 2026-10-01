@@ -1,4 +1,4 @@
-"""Выдуманные сессии агентов и снимки работающей «Нити» на них — для README.
+"""Выдуманные сессии агентов на английском и снимки работающей «Нити» на них — для README.
 
 Запуск из корня репозитория после ./scripts/setup.sh:
 
@@ -53,78 +53,77 @@ def new_id():
 
 # (ключ для ссылок, инструмент, проект, ветка, название, [(роль, (дни назад, ч, м), текст)], автозапуск)
 S = [
-    ("A", "codex", "shop-api", "feature/search-index", "Ускорить поиск по каталогу товаров", [
-        ("user", (0, 7, 55), "Посмотри, какие запросы к базе в shop-api самые медленные за последние сутки."),
-        ("assistant", (0, 8, 10), "По pg_stat_statements лидирует поиск по каталогу: в среднем 2,1 с, 38 тыс. вызовов за сутки. Следом отчёт по остаткам — 900 мс, но он вызывается редко."),
-        ("user", (0, 8, 20), "Поиск по каталогу отвечает 2–3 секунды на запросах вроде «кроссовки белые». Найди, что тормозит, и предложи исправление."),
-        ("assistant", (0, 8, 31), "Посмотрел EXPLAIN ANALYZE запроса из internal/search/repository.go. Postgres читает таблицу products целиком — 1,2 млн строк: условие ILIKE '%…%' обычным индексом не ускоряется.\n\nПредлагаю триграммный индекс pg_trgm по name и description и сортировку по similarity(). Запрос станет чуть сложнее, но ответ API не меняется."),
-        ("user", (0, 8, 40), "Делай. Миграцию отдельным файлом, индекс создавай без блокировки таблицы."),
-        ("assistant", (0, 9, 12), "Готово. Добавил migrations/0042_products_trgm.sql с CREATE INDEX CONCURRENTLY и поправил запрос в repository.go. На копии базы p95 поиска упал с 2,4 с до 85 мс, тесты пакета search проходят."),
-        ("user", (0, 9, 35), "Отлично. Заведи задачу прогнать миграцию на стейдже."),
-        ("assistant", (0, 9, 41), "Завёл SHOP-128 «Прогнать миграцию 0042 на стейдже» и приложил замеры до и после. Что-то ещё сейчас?"),
+    ("A", "codex", "shop-api", "feature/search-index", "Speed up product catalog search", [
+        ("user", (0, 7, 55), "Which database queries in shop-api were the slowest over the last day?"),
+        ("assistant", (0, 8, 10), "pg_stat_statements puts catalog search on top: 2.1 s on average, 38k calls a day. The stock report comes next at 900 ms, but it runs rarely."),
+        ("user", (0, 8, 20), "Catalog search takes 2–3 seconds for queries like \"white sneakers\". Find what is slow and suggest a fix."),
+        ("assistant", (0, 8, 31), "I checked EXPLAIN ANALYZE for the query in internal/search/repository.go. Postgres scans the whole products table, 1.2M rows: ILIKE '%…%' can't use a regular index.\n\nI suggest a pg_trgm trigram index on name and description and ordering by similarity(). The query gets a bit more complex, but the API response stays the same."),
+        ("user", (0, 8, 40), "Go ahead. Put the migration in its own file and build the index without locking the table."),
+        ("assistant", (0, 9, 12), "Done. Added migrations/0042_products_trgm.sql with CREATE INDEX CONCURRENTLY and updated the query in repository.go. On a copy of the database p95 for search dropped from 2.4 s to 85 ms, and the search package tests pass."),
+        ("user", (0, 9, 35), "Great. Open a ticket to run the migration on staging."),
+        ("assistant", (0, 9, 41), "Opened SHOP-128 \"Run migration 0042 on staging\" and attached the before and after numbers. Anything else for now?"),
     ], False),
-    ("B", "claude", "shop-api", "feature/promo-codes", "Промокоды в корзине: ревью MR", [
-        ("user", (0, 9, 5), "Посмотри MR с промокодами в корзине. Особенно расчёт скидки и сроки действия кодов."),
-        ("assistant", (0, 9, 50), "Нашёл две проблемы.\n\n1. Скидка считается до округления цены позиции, поэтому на заказах из трёх и более товаров итог расходится с чеком на копейку.\n2. При повторном открытии корзины срок действия промокода не проверяется: истёкший код продолжает работать.\n\nОстальное в порядке. Оставить комментарии в MR?"),
+    ("B", "claude", "shop-api", "feature/promo-codes", "Promo codes in the cart: MR review", [
+        ("user", (0, 9, 5), "Review the MR with promo codes in the cart. Pay attention to the discount math and code expiry."),
+        ("assistant", (0, 9, 50), "Found two problems.\n\n1. The discount is applied before the item price is rounded, so for orders with three or more items the total is one cent off the receipt.\n2. Code expiry is not checked when the cart is opened again: an expired code keeps working.\n\nThe rest looks fine. Should I leave comments on the MR?"),
     ], False),
-    ("X1", "codex", "shop-api", "feature/search-index", "Ревью миграции 0042", [
-        ("user", (0, 9, 20), "Проверь миграцию migrations/0042_products_trgm.sql: блокировки, откат, время на большой таблице."),
-        ("assistant", (0, 9, 26), "Замечаний нет: индекс создаётся без блокировки, откат удаляет его, на 1,2 млн строк создание заняло 40 с."),
+    ("X1", "codex", "shop-api", "feature/search-index", "Review migration 0042", [
+        ("user", (0, 9, 20), "Check migrations/0042_products_trgm.sql: locks, rollback, time on a large table."),
+        ("assistant", (0, 9, 26), "No issues: the index is built without locks, the rollback drops it, and on 1.2M rows it took 40 s."),
     ], True),
-    ("C", "kimi", "landing", "main", "Перевести лендинг на Astro", [
-        ("user", (0, 8, 5), "Перенеси лендинг с Gatsby на Astro, сохрани текущие адреса страниц."),
-        ("assistant", (0, 8, 50), "Перенёс 12 страниц и общий макет. Адреса совпадают, редиректы не нужны. Сборка теперь 14 с вместо 48. Осталась форма подписки — она зависит от плагина Gatsby."),
+    ("C", "kimi", "landing", "main", "Move the landing page to Astro", [
+        ("user", (0, 8, 5), "Move the landing page from Gatsby to Astro and keep the current page URLs."),
+        ("assistant", (0, 8, 50), "Moved 12 pages and the shared layout. URLs match, no redirects needed. The build now takes 14 s instead of 48. The signup form is left: it depends on a Gatsby plugin."),
     ], False),
-    ("D", "grok", "infra", "main", "Алерты на заполнение диска", [
-        ("user", (1, 22, 50), "Добавь алерт в Prometheus, когда диск на нодах заполнен больше чем на 85%."),
-        ("assistant", (1, 23, 12), "Добавил правило NodeDiskAlmostFull в alerts/node.yml: срабатывает, если свободно меньше 15% дольше 10 минут. Проверил через promtool — правило проходит."),
+    ("D", "grok", "infra", "main", "Disk usage alerts", [
+        ("user", (1, 22, 50), "Add a Prometheus alert for nodes whose disk is more than 85% full."),
+        ("assistant", (1, 23, 12), "Added the NodeDiskAlmostFull rule to alerts/node.yml: it fires when less than 15% is free for more than 10 minutes. Checked it with promtool."),
     ], False),
-    ("E", "claude", "mobile-app", "release/2.3", "Падение на Android 14 при открытии камеры", [
-        ("user", (1, 21, 30), "Крэш на Android 14 при открытии камеры в профиле. Стек в crash.txt."),
-        ("assistant", (1, 22, 14), "Причина — частичный доступ к фото на Android 14: пользователь выбирает несколько снимков, а код ждёт доступ ко всей галерее и падает на пустом списке. Добавил проверку и запрос частичного доступа. Нужно проверить на устройстве."),
+    ("E", "claude", "mobile-app", "release/2.3", "Crash on Android 14 when opening the camera", [
+        ("user", (1, 21, 30), "The app crashes on Android 14 when the camera opens from the profile. Stack trace in crash.txt."),
+        ("assistant", (1, 22, 14), "The cause is partial photo access on Android 14: the user picks a few photos, but the code expects access to the whole gallery and crashes on an empty list. Added a check and a request for partial access. It still needs a test on a device."),
     ], False),
-    ("X2", "claude", "mobile-app", "release/2.3", "Совет: разрешения Android 14", [
-        ("user", (1, 22, 30), "Как правильно запрашивать частичный доступ к фото на Android 14? Коротко."),
-        ("assistant", (1, 22, 40), "Запрашивать READ_MEDIA_VISUAL_USER_SELECTED вместе с READ_MEDIA_IMAGES и обрабатывать случай, когда выбрана часть фото."),
+    ("X2", "claude", "mobile-app", "release/2.3", "Advice: Android 14 permissions", [
+        ("user", (1, 22, 30), "How do I request partial photo access on Android 14? Keep it short."),
+        ("assistant", (1, 22, 40), "Request READ_MEDIA_VISUAL_USER_SELECTED together with READ_MEDIA_IMAGES and handle the case when only some photos are selected."),
     ], True),
-    ("F", "codex", "data-pipeline", "feat/dedup", "Дедупликация событий в ClickHouse", [
-        ("user", (1, 18, 30), "В таблице events дубли после повторной отправки из мобильного клиента. Как убрать?"),
-        ("assistant", (1, 19, 2), "Перевёл таблицу на ReplacingMergeTree с ключом (user_id, event_id) и добавил FINAL в отчёты, где важна точность. Старые данные переносит разовый скрипт scripts/dedup_events.sql."),
+    ("F", "codex", "data-pipeline", "feat/dedup", "Deduplicate events in ClickHouse", [
+        ("user", (1, 18, 30), "The events table has duplicates after the mobile client resends events. How do we get rid of them?"),
+        ("assistant", (1, 19, 2), "Switched the table to ReplacingMergeTree keyed by (user_id, event_id) and added FINAL to the reports where accuracy matters. A one-off script, scripts/dedup_events.sql, moves the old data."),
     ], False),
-    ("G", "kimi", "infra", "terraform-modules", "Разбить terraform на модули", [
-        ("user", (1, 15, 50), "Разбей корневой terraform на модули: сеть, база, кластер."),
-        ("assistant", (1, 16, 40), "Вынес сеть, базу и кластер в modules/network, modules/postgres и modules/k8s. terraform plan показывает 0 изменений: состояние перенесено блоками moved."),
+    ("G", "kimi", "infra", "terraform-modules", "Split terraform into modules", [
+        ("user", (1, 15, 50), "Split the root terraform into modules: network, database, cluster."),
+        ("assistant", (1, 16, 40), "Moved the network, database and cluster into modules/network, modules/postgres and modules/k8s. terraform plan shows 0 changes: the state moved with moved blocks."),
     ], False),
-    ("H", "grok", "notes-bot", "main", "Команда /remind для бота заметок", [
-        ("user", (1, 14, 30), "Добавь в бота команду /remind: «/remind завтра в 9 купить корм»."),
-        ("assistant", (1, 15, 10), "Добавил /remind с разбором времени вроде «завтра в 9» и очередь напоминаний в SQLite. Тесты на разбор дат проходят."),
+    ("H", "grok", "notes-bot", "main", "/remind command for the notes bot", [
+        ("user", (1, 14, 30), "Add a /remind command to the bot: \"/remind tomorrow at 9 buy cat food\"."),
+        ("assistant", (1, 15, 10), "Added /remind with parsing for times like \"tomorrow at 9\" and a reminder queue in SQLite. The date parsing tests pass."),
     ], False),
-    ("I", "claude", "landing", "feature/dark-theme", "Тёмная тема для лендинга", [
-        ("user", (2, 17, 40), "Сделай тёмную тему по системной настройке, без переключателя."),
-        ("assistant", (2, 18, 20), "Перевёл цвета на CSS-переменные и добавил prefers-color-scheme. Контраст текста проверил: везде не ниже 4.5:1."),
+    ("I", "claude", "landing", "feature/dark-theme", "Dark theme for the landing page", [
+        ("user", (2, 17, 40), "Add a dark theme that follows the system setting, without a toggle."),
+        ("assistant", (2, 18, 20), "Moved colors to CSS variables and added prefers-color-scheme. Checked text contrast: at least 4.5:1 everywhere."),
     ], False),
-    ("J", "codex", "mobile-app", "feature/offline", "Офлайн-режим: очередь запросов", [
-        ("user", (2, 11, 20), "Без сети заказы теряются. Нужна очередь запросов, которая отправится при появлении сети."),
-        ("assistant", (2, 12, 0), "Добавил очередь в локальной базе: запросы сохраняются и уходят по порядку, когда сеть вернулась. Повтор одного и того же заказа сервер отклоняет по ключу запроса."),
+    ("J", "codex", "mobile-app", "feature/offline", "Offline mode: request queue", [
+        ("user", (2, 11, 20), "Orders get lost without a network. We need a request queue that sends when the network is back."),
+        ("assistant", (2, 12, 0), "Added a queue in the local database: requests are stored and sent in order once the network is back. The server rejects a repeated order by its request key."),
     ], False),
-    ("K", "kimi", "data-pipeline", "main", "Kafka или Redpanda для потока событий", [
-        ("user", (3, 16, 50), "Сравни Kafka и Redpanda для потока событий на 5 тыс. сообщений в секунду."),
-        ("assistant", (3, 17, 30), "Для такого потока подходят обе. Redpanda проще в эксплуатации: один бинарник без ZooKeeper, клиенты Kafka работают без изменений. Предлагаю Redpanda."),
+    ("K", "kimi", "data-pipeline", "main", "Kafka or Redpanda for the event stream", [
+        ("user", (3, 16, 50), "Compare Kafka and Redpanda for an event stream of 5k messages per second."),
+        ("assistant", (3, 17, 30), "Both handle this load. Redpanda is easier to run: a single binary without ZooKeeper, and Kafka clients work unchanged. I suggest Redpanda."),
     ], False),
-    ("L", "claude", "infra", "main", "Проверить восстановление базы из бэкапа", [
-        ("user", (3, 10, 20), "Проверь, что ночной бэкап базы реально восстанавливается."),
-        ("assistant", (3, 11, 0), "Восстановил вчерашний бэкап на отдельной машине: 18 минут, данные сходятся с продом на момент снятия."),
+    ("L", "claude", "infra", "main", "Check that database backups restore", [
+        ("user", (3, 10, 20), "Check that the nightly database backup actually restores."),
+        ("assistant", (3, 11, 0), "Restored yesterday's backup on a separate machine: 18 minutes, and the data matches production at backup time."),
     ], False),
-    ("M", "grok", "shop-api", "master", "Обновить Go до 1.25", [
-        ("user", (4, 15, 30), "Обнови проект до Go 1.25."),
-        ("assistant", (4, 16, 0), "Обновил go.mod и образ сборки. Сборка и тесты проходят, предупреждений линтера нет."),
+    ("M", "grok", "shop-api", "master", "Upgrade Go to 1.25", [
+        ("user", (4, 15, 30), "Upgrade the project to Go 1.25."),
+        ("assistant", (4, 16, 0), "Updated go.mod and the build image. Build and tests pass, no linter warnings."),
     ], False),
-    ("N", "codex", "notes-bot", "main", "Хранение заметок в SQLite", [
-        ("user", (4, 13, 20), "Перенеси заметки из JSON-файла в SQLite."),
-        ("assistant", (4, 14, 0), "Перенёс: таблицы notes и tags, разовый перенос старого файла при запуске. Поиск по тексту — через FTS5."),
+    ("N", "codex", "notes-bot", "main", "Store notes in SQLite", [
+        ("user", (4, 13, 20), "Move the notes from a JSON file to SQLite."),
+        ("assistant", (4, 14, 0), "Done: notes and tags tables, and a one-off import of the old file on startup. Full-text search uses FTS5."),
     ], False),
 ]
-
 
 def write_jsonl(path, rows):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -216,54 +215,91 @@ def build():
         "version": 2, "pins": [keys["A"], keys["C"]], "names": {}, "done": [keys["D"]], "hidden": [],
         "migrated_local_storage": True, "digest_tails": {"t4": True},
         "summaries": {
-            keys["A"]: {"title": "Поиск по каталогу: триграммный индекс вместо полного прохода",
-                        "summary": "Поиск по каталогу отвечал 2–3 с: условие ILIKE читало всю таблицу products. Добавлен индекс pg_trgm по name и description (миграция 0042, без блокировки таблицы) и сортировка по похожести. На копии базы p95 упал с 2,4 с до 85 мс, тесты проходят. Заведена задача SHOP-128 на прогон миграции на стейдже.",
-                        "next_step": "Прогнать миграцию 0042 на стейдже и сравнить p95 поиска с копией базы",
-                        "closed": False, "related": [{"key": keys["M"], "why": "тот же сервис"}],
+            keys["A"]: {"title": "Catalog search: trigram index instead of a full scan",
+                        "summary": "Catalog search took 2–3 s: ILIKE scanned the whole products table. Added a pg_trgm index on name and description (migration 0042, no table lock) and ordering by similarity. On a copy of the database p95 dropped from 2.4 s to 85 ms, tests pass. Ticket SHOP-128 tracks running the migration on staging.",
+                        "next_step": "Run migration 0042 on staging and compare search p95 with the database copy",
+                        "closed": False, "related": [{"key": keys["M"], "why": "same service"}],
                         "at": summary_at, "model": "kimi"},
-            keys["D"]: {"title": "Алерт NodeDiskAlmostFull для нод",
-                        "summary": "Добавлено правило Prometheus: свободно меньше 15% дольше 10 минут. Проверено через promtool.",
+            keys["D"]: {"title": "NodeDiskAlmostFull alert for nodes",
+                        "summary": "Added a Prometheus rule: less than 15% free for more than 10 minutes. Checked with promtool.",
                         "next_step": "", "closed": True, "related": [], "at": summary_at, "model": "kimi"},
-            keys["E"]: {"title": "Android 14: падение камеры при частичном доступе к фото",
-                        "summary": "Камера в профиле падала, когда пользователь давал доступ только к части фото. Добавлены проверка пустого списка и запрос частичного доступа. На устройстве ещё не проверено.",
-                        "next_step": "Проверить исправление на устройстве с Android 14",
+            keys["E"]: {"title": "Android 14: camera crash with partial photo access",
+                        "summary": "The profile camera crashed when the user granted access to only some photos. Added an empty list check and a partial access request. Not tested on a device yet.",
+                        "next_step": "Test the fix on an Android 14 device",
                         "closed": False, "related": [], "at": summary_at, "model": "kimi"},
         },
         "digests": {"5": {"at": (TODAY + timedelta(hours=7, minutes=30)).timestamp(), "model": "claude", "result": {
-            "lead": "Основная работа шла в shop-api и mobile-app. В shop-api поиск по каталогу стал быстрее в 28 раз, а в MR с промокодами нашлись две ошибки. В mobile-app исправлено падение камеры на Android 14, в infra появились алерт на диск и модули terraform.",
+            "lead": "Most of the work went into shop-api and mobile-app. In shop-api, catalog search got 28 times faster, and the promo code MR turned up two bugs. In mobile-app, the Android 14 camera crash is fixed; infra got a disk alert and terraform modules.",
             "projects": [
                 {"name": "shop-api", "bullets": [
-                    {"text": "Поиск по каталогу ускорен с 2,4 с до 85 мс: индекс pg_trgm, миграция 0042.", "keys": [keys["A"]]},
-                    {"text": "В MR с промокодами две ошибки: копейка при округлении и истёкшие коды.", "keys": [keys["B"]]},
-                    {"text": "Go обновлён до 1.25, сборка и тесты проходят.", "keys": [keys["M"]]}]},
+                    {"text": "Catalog search went from 2.4 s to 85 ms: pg_trgm index, migration 0042.", "keys": [keys["A"]]},
+                    {"text": "Two bugs in the promo code MR: a one-cent rounding error and expired codes.", "keys": [keys["B"]]},
+                    {"text": "Go upgraded to 1.25, build and tests pass.", "keys": [keys["M"]]}]},
                 {"name": "mobile-app", "bullets": [
-                    {"text": "Падение камеры на Android 14 исправлено, ждёт проверки на устройстве.", "keys": [keys["E"]]},
-                    {"text": "Офлайн-режим: заказы копятся в очереди и уходят, когда вернулась сеть.", "keys": [keys["J"]]}]},
+                    {"text": "The Android 14 camera crash is fixed and waits for a device test.", "keys": [keys["E"]]},
+                    {"text": "Offline mode: orders wait in a queue and go out when the network is back.", "keys": [keys["J"]]}]},
                 {"name": "infra", "bullets": [
-                    {"text": "Алерт NodeDiskAlmostFull при свободном месте меньше 15%.", "keys": [keys["D"]]},
-                    {"text": "Terraform разбит на модули network, postgres и k8s без изменений в инфраструктуре.", "keys": [keys["G"]]},
-                    {"text": "Восстановление базы из бэкапа проверено: 18 минут.", "keys": [keys["L"]]}]},
+                    {"text": "NodeDiskAlmostFull alert when less than 15% of the disk is free.", "keys": [keys["D"]]},
+                    {"text": "Terraform split into network, postgres and k8s modules with no infrastructure changes.", "keys": [keys["G"]]},
+                    {"text": "Database restore from backup checked: 18 minutes.", "keys": [keys["L"]]}]},
                 {"name": "landing", "bullets": [
-                    {"text": "Лендинг переведён на Astro, сборка 14 с вместо 48.", "keys": [keys["C"]]},
-                    {"text": "Тёмная тема по системной настройке.", "keys": [keys["I"]]}]},
+                    {"text": "The landing page moved to Astro, builds take 14 s instead of 48.", "keys": [keys["C"]]},
+                    {"text": "Dark theme that follows the system setting.", "keys": [keys["I"]]}]},
                 {"name": "data-pipeline", "bullets": [
-                    {"text": "Дубли событий убраны через ReplacingMergeTree.", "keys": [keys["F"]]},
-                    {"text": "Для потока событий выбрана Redpanda: клиенты Kafka работают без изменений.", "keys": [keys["K"]]}]},
+                    {"text": "Duplicate events removed with ReplacingMergeTree.", "keys": [keys["F"]]},
+                    {"text": "Redpanda chosen for the event stream: Kafka clients work unchanged.", "keys": [keys["K"]]}]},
                 {"name": "notes-bot", "bullets": [
-                    {"text": "Команда /remind и хранение заметок в SQLite с поиском по тексту.", "keys": [keys["H"], keys["N"]]}]},
+                    {"text": "The /remind command and notes stored in SQLite with full-text search.", "keys": [keys["H"], keys["N"]]}]},
             ],
             "tails": [
-                {"id": "t1", "text": "Прогнать миграцию 0042 на стейдже", "key": keys["A"]},
-                {"id": "t2", "text": "Оставить комментарии в MR с промокодами", "key": keys["B"]},
-                {"id": "t3", "text": "Проверить исправление камеры на устройстве с Android 14", "key": keys["E"]},
-                {"id": "t4", "text": "Перенести форму подписки лендинга", "key": keys["C"]}],
+                {"id": "t1", "text": "Run migration 0042 on staging", "key": keys["A"]},
+                {"id": "t2", "text": "Leave comments on the promo code MR", "key": keys["B"]},
+                {"id": "t3", "text": "Test the camera fix on an Android 14 device", "key": keys["E"]},
+                {"id": "t4", "text": "Move the landing page signup form", "key": keys["C"]}],
             "autos": [{"key": keys["X1"], "project": "shop-api",
-                       "text": "Ревью миграции 0042: замечаний нет, индекс создаётся без блокировки."}],
+                       "text": "Migration 0042 review: no issues, the index is built without locks."}],
         }}},
     }
     DATA.mkdir(parents=True, exist_ok=True)
     (DATA / "state.json").write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
     return keys
+
+
+def demo_agent_job(server, keys):
+    """Законченное задание умного поиска с журналом агента — для снимка «сессии агента».
+    Настоящий CLI не запускается: события те же, что пишет runner.run."""
+    workdir = "~/.local/share/ai-threads/runs/20261001-0912-search"
+    events = [
+        {"type": "progress", "step": 1, "steps": 3, "text": "understanding the query", "agent": "kimi"},
+        {"type": "trace", "agent": "kimi", "kind": "prompt", "text": "Parse the search request following the agent instructions.\nRequest: where did I work on databases and migrations\nAgents (id — name): codex — Codex, claude — Claude Code, grok — Grok, kimi — Kimi"},
+        {"type": "trace", "agent": "kimi", "kind": "model", "text": "kimi-code/kimi-for-coding"},
+        {"type": "trace", "agent": "kimi", "kind": "thinking", "text": "The person wants sessions about databases and schema changes. Code names will be things like migration files, index types and engines. I should give both English terms and common names: migration, index, postgres, clickhouse, sqlite."},
+        {"type": "trace", "agent": "kimi", "kind": "text", "text": '{"terms": ["migration", "index", "postgres", "clickhouse", "sqlite"], "agents": [], "projects": [], "days": null}'},
+        {"type": "agent_session", "agent": "kimi", "session": "session_5f0c2a9e-1b7d-4c1e-9a3f-2d8e6b4c7a10",
+         "command": f"cd -- {workdir} && kimi --session session_5f0c2a9e-1b7d-4c1e-9a3f-2d8e6b4c7a10"},
+        {"type": "plan", "terms": ["migration", "index", "postgres", "clickhouse", "sqlite"], "agents": [], "projects": [], "days": None},
+        {"type": "trace", "agent": "nit", "kind": "nit", "text": "Searching the logs of 14 sessions for: migration, index, postgres, clickhouse, sqlite"},
+        {"type": "trace", "agent": "nit", "kind": "nit", "text": "Matches in 7 sessions, the top 7 went to the agent"},
+        {"type": "progress", "step": 3, "steps": 3, "text": "picking sessions", "agent": "kimi"},
+        {"type": "trace", "agent": "kimi", "kind": "prompt", "text": "Pick the sessions that answer the request following the agent instructions.\nRequest: where did I work on databases and migrations\n\nCandidates:\n- key: codex:…\n  project: shop-api\n  title: Speed up product catalog search"},
+        {"type": "trace", "agent": "kimi", "kind": "tool", "tool": "Read", "text": '{"path": "/home/dev/.codex/sessions/2026/10/01/rollout-2026-10-01T07-55-00.jsonl", "offset": 0}'},
+        {"type": "trace", "agent": "kimi", "kind": "result", "text": "{\"type\": \"response_item\", \"payload\": {\"role\": \"assistant\", \"content\": \"Done. Added migrations/0042_products_trgm.sql with CREATE INDEX CONCURRENTLY…\"}}"},
+        {"type": "trace", "agent": "kimi", "kind": "thinking", "text": "Migration 0042 and the ClickHouse dedup are real schema work. The SQLite notes move and the backup restore check are database work too. The Go upgrade only mentions the database in passing, so it stays out."},
+        {"type": "trace", "agent": "kimi", "kind": "text", "text": "Five sessions fit: migration 0042 in shop-api, the ClickHouse dedup, notes moved to SQLite, the backup restore check and the postgres module in terraform."},
+        {"type": "trace", "agent": "kimi", "kind": "usage", "text": "in 18421 · out 912"},
+        {"type": "result", "result": {"query": "where did I work on databases and migrations", "ranked": True, "scanned": 14,
+                                      "plan": {"terms": ["migration", "index"], "agents": [], "projects": [], "days": None},
+                                      "results": []}},
+    ]
+
+    def emit_all(job):
+        for event in events:
+            job.emit(event)
+
+    job = server.jobs.start("search:demo", "search", None, emit_all)
+    job.query = "where did I work on databases and migrations"
+    while not job.finished:
+        time.sleep(0.05)
 
 
 def shoot(keys):
@@ -292,6 +328,7 @@ def shoot(keys):
     assert catalog.wait(30)
     server = create_server(0, catalog=catalog)
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    demo_agent_job(server, keys)
     url = f"http://127.0.0.1:{server.server_port}"
 
     # Страница открыта на привычном 127.0.0.1:8765, запросы уходят на демо-сервер.
@@ -308,30 +345,36 @@ def shoot(keys):
     with sync_playwright() as p:
         browser = p.chromium.launch()
         # Готовый результат умного поиска: страница хранит его в sessionStorage до закрытия.
-        smart = {"q": "где я работал с базами данных и миграциями", "scope": "mine", "agent": "kimi", "warnings": [],
-                 "result": {"query": "где я работал с базами данных и миграциями", "ranked": True, "scanned": 14,
-                            "plan": {"terms": ["миграц", "migration", "индекс", "postgres", "clickhouse", "sqlite"],
+        smart = {"q": "where did I work on databases and migrations", "scope": "mine", "agent": "kimi", "warnings": [], "job": "search:demo",
+                 "result": {"query": "where did I work on databases and migrations", "ranked": True, "scanned": 14,
+                            "plan": {"terms": ["migration", "index", "postgres", "clickhouse", "sqlite"],
                                      "agents": [], "projects": [], "days": None},
                             "results": [
-                                {"key": keys["A"], "score": 9.4, "why": "Миграция 0042: индекс pg_trgm вместо полного прохода по products, p95 поиска с 2,4 с до 85 мс."},
-                                {"key": keys["F"], "score": 7.1, "why": "Дубли в events: таблица на ReplacingMergeTree и разовый перенос старых данных в ClickHouse."},
-                                {"key": keys["N"], "score": 6.2, "why": "Перенос заметок из JSON в SQLite: таблицы notes и tags, поиск через FTS5."},
-                                {"key": keys["L"], "score": 4.8, "why": "Проверка восстановления базы из ночного бэкапа: 18 минут, данные сходятся."},
-                                {"key": keys["G"], "score": 3.5, "why": "Модуль postgres в terraform: база вынесена в modules/postgres без изменений в инфраструктуре."}]}}
+                                {"key": keys["A"], "score": 9.4, "why": "Migration 0042: a pg_trgm index instead of a full scan of products, search p95 from 2.4 s to 85 ms."},
+                                {"key": keys["F"], "score": 7.1, "why": "Duplicate events: the table moved to ReplacingMergeTree, with a one-off move of old data in ClickHouse."},
+                                {"key": keys["N"], "score": 6.2, "why": "Notes moved from JSON to SQLite: notes and tags tables, full-text search with FTS5."},
+                                {"key": keys["L"], "score": 4.8, "why": "Restoring the database from the nightly backup: 18 minutes, the data matches."},
+                                {"key": keys["G"], "score": 3.5, "why": "A postgres module in terraform: the database moved to modules/postgres with no infrastructure changes."}]}}
         smart_script = f"sessionStorage.setItem('nit.smart.result', {json.dumps(json.dumps(smart, ensure_ascii=False))});"
-        for name, width, path, init in (("main", 1440, f"/#section=mine&session={keys['A']}&view=session", None),
-                                        ("digest", 1440, "/digest.html", None),
-                                        ("narrow", 760, f"/#section=mine&session={keys['A']}&view=list", None),
-                                        ("settings", 1440, "/settings.html#section=agents", None),
-                                        ("search", 1440, f"/#section=mine&session={keys['F']}&view=session", smart_script)):
+        # Снимок, адрес и элемент, появление которого значит «страница готова»: сетевой тишины
+        # не бывает — страница опрашивает статусы и держит поток событий заданий.
+        for name, width, path, init, ready in (
+                ("main", 1440, f"/#section=mine&session={keys['A']}&view=session", None, '[data-testid="message"]'),
+                ("digest", 1440, "/digest.html", None, '[data-testid="digest-lead"]'),
+                ("narrow", 760, f"/#section=mine&session={keys['A']}&view=list", None, '[data-testid="row"]'),
+                ("settings", 1440, "/settings.html#section=agents", None, '[data-testid="agent-card"]'),
+                ("search", 1440, f"/#section=mine&session={keys['F']}&view=session", smart_script,
+                 '[data-testid="smart-why"]'),
+                ("agent", 1440, f"/#section=mine&session={keys['F']}&view=agent&log=search%3Ademo", smart_script,
+                 '[data-testid="agent-log"]')):
             ctx = browser.new_context(viewport={"width": width, "height": 900}, device_scale_factor=2,
-                                      locale="ru-RU")
+                                      locale="en-US")
             page = ctx.new_page()
             if init:
                 page.add_init_script(init)
             page.route("http://127.0.0.1:8765/**", proxy)
             page.goto("http://127.0.0.1:8765" + path)
-            page.wait_for_load_state("networkidle")
+            page.wait_for_selector(ready, timeout=30000)
             time.sleep(1.5)
             page.screenshot(path=str(OUT / f"screen-{name}.png"))
             ctx.close()

@@ -2,10 +2,10 @@
 `agents/main/wire.jsonl`, история ручного ввода в `user-history/*.jsonl`."""
 
 import json
+import re
 
-from .. import settings
 from ..sources.common import UUID, clean_title, prefix, read_json, timestamp, update_index
-from .base import JsonlAgent
+from .base import JsonlAgent, toml_top_level
 
 
 class Kimi(JsonlAgent):
@@ -77,13 +77,66 @@ class Kimi(JsonlAgent):
     def finish(self, session, entry, history):
         prompts = entry.get("prompts", [])
         session.auto = bool(prompts) and not any(p and p in history for p in prompts)
-        session.by = "kimi -p" if session.auto else "я"
+        session.by = "kimi -p" if session.auto else ""
 
     def headless(self, program, prompt, *, instructions, add_dirs, out_file):
-        argv = [program, "--model", settings.effective()["kimi_model"], "--agent-file", str(instructions)]
+        argv = [program, "--agent-file", str(instructions)]
         for directory in add_dirs:
             argv += ["--add-dir", str(directory)]
         return argv + ["--output-format", "stream-json", "--prompt", prompt], None
+
+    def models(self):
+        models, section, names = [], None, {}
+        top = toml_top_level(self.home() / "config.toml")
+        try:
+            lines = (self.home() / "config.toml").read_text(encoding="utf-8").splitlines()
+        except OSError:
+            lines = []
+        for line in lines:
+            line = line.strip()
+            match = re.fullmatch(r'\[models\."([^"]+)"\]', line)
+            if line.startswith("["):
+                section = match.group(1) if match else None
+                if section:
+                    models.append(section)
+            elif section and line.startswith("display_name"):
+                names[section] = line.split("=", 1)[1].strip().strip('"')
+        return {"default_model": top.get("default_model", ""), "default_effort": "",
+                "models": [{"id": m, "name": names.get(m, m), "efforts": [], "default_effort": ""} for m in models],
+                "efforts": []}
+
+    def choice_args(self, model, effort):
+        return ["--model", model] if model else []
+
+    def session_of(self, row):
+        if row.get("type") == "session.resume_hint" and isinstance(row.get("session_id"), str):
+            return row["session_id"]
+        return ""
+
+    def trace(self, row):
+        from .base import clip
+        role, items = row.get("role"), []
+        if role == "assistant":
+            reasoning = row.get("reasoning_content") or row.get("reasoning")
+            if isinstance(reasoning, str) and reasoning.strip():
+                items.append({"kind": "thinking", "text": clip(reasoning)})
+            content = row.get("content")
+            if isinstance(content, str) and content.strip():
+                items.append({"kind": "text", "text": clip(content)})
+            for call in row.get("tool_calls") or []:
+                if isinstance(call, dict):
+                    function = call.get("function") or {}
+                    items.append({"kind": "tool", "tool": str(function.get("name", "")),
+                                  "text": clip(function.get("arguments", ""), 600)})
+        elif role == "tool":
+            items.append({"kind": "result", "text": clip(row.get("content", ""), 1500)})
+        return items
+
+    def reply(self, program, session_id, text, *, instructions, add_dirs, out_file):
+        argv = [program, "--agent-file", str(instructions)]
+        for directory in add_dirs:
+            argv += ["--add-dir", str(directory)]
+        return argv + ["--session", session_id, "--output-format", "stream-json", "--prompt", text], None
 
     def stream_events(self, row):
         role = row.get("role")

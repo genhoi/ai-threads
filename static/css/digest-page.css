@@ -2,7 +2,8 @@
 .digest-toolbar{flex-shrink:0;display:flex;align-items:center;flex-wrap:wrap;gap:14px;padding:14px var(--sp-6);border-bottom:1px solid var(--line)}
 .digest-toolbar h1{margin:0;font-size:var(--fs-title);font-weight:600}
 .digest-toolbar .btn-primary{height:30px;padding:0 12px;font-size:var(--fs-s)}
-.digest-meta{font-size:var(--fs-s);color:var(--text-3)}
+/* Строка «когда и кем составлена» — отдельной строкой под кнопками: рядом с выбором модели ей не хватает места. */
+.digest-meta{order:1;flex-basis:100%;margin-top:-6px;font-size:var(--fs-s);color:var(--text-3)}
 .digest-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--col-sessions)}
 .digest-main{min-height:0;padding:20px var(--sp-6) 28px}
 .digest-inner{max-width:820px;display:flex;flex-direction:column;gap:22px}
@@ -53,6 +54,7 @@
 .side-legend{flex-shrink:0;display:flex;flex-wrap:wrap;gap:14px;padding:10px 16px;border-top:1px solid var(--line);font-size:var(--fs-xs);color:var(--text-3)}
 .side-legend span{display:inline-flex;align-items:center;gap:5px}
 .srow-time{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3);padding-top:2px}
+html[lang="en"] .srow{grid-template-columns:58px 18px minmax(0,1fr) 16px} /* «12:30 PM» шире «12:30» */
 .srow-main{min-width:0}
 .srow-proj{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-2)}
 .srow-st{display:flex;justify-content:center;padding-top:3px}
@@ -62,3 +64,15 @@
   .digest-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 300px}
   .digest-side{border-left:0;border-top:1px solid var(--line)}
 }
+
+/* Модель и уровень рассуждений рядом с выбором агента */
+.digest-choice{display:flex;gap:8px;flex-wrap:wrap}
+.pick{height:30px;max-width:220px;padding:0 8px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface-2);color:var(--text);font:inherit;font-size:var(--fs-s);cursor:pointer}
+.pick:disabled{opacity:.5;cursor:default}
+.pick:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* Журнал агента на месте сводки: разметка и стили «сессии агента» с главного экрана (main.css). */
+.digest-main.is-agent{display:flex;flex-direction:column;overflow:hidden;padding:0}
+.agent-reply:empty{display:none}
+.log-note{margin:0;font-size:var(--fs-s);color:var(--text-3)}
+.lead-head{display:flex;align-items:center;gap:12px;justify-content:space-between}

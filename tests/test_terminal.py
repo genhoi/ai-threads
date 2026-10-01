@@ -17,14 +17,15 @@ from ai_threads.live import _starttime
 from ai_threads.model import Session
 from ai_threads import terminal
 from ai_threads.terminal import (
-    ALREADY_OPEN,
-    ALL_OPEN_COMMENT,
-    MISSING_NOTE,
-    NO_FOLDER,
     tab_color,
     restore_script,
     reveal,
 )
+
+# Пометки по-русски: в тестах язык сообщений русский (см. conftest).
+ALL_OPEN_COMMENT = "# все выбранные сессии уже открыты или их нельзя продолжить из терминала"
+MISSING_NOTE = "нет папки · без cd"
+NO_FOLDER = "Папки проекта больше нет"
 
 ROOT = Path(__file__).resolve().parents[1]
 RESUME = ROOT / "bin" / "nit-resume"
@@ -44,7 +45,7 @@ def isolated(tmp_path, monkeypatch):
     return tmp_path
 
 
-def make_session(tool, session_id, cwd, by="я"):
+def make_session(tool, session_id, cwd, by=""):
     return Session(tool=tool, id=session_id, title="t", cwd=str(cwd), updated=0, by=by)
 
 

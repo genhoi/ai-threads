@@ -8,11 +8,10 @@ from __future__ import annotations
 
 import json
 import re
-import tempfile
 import time
 from pathlib import Path
 
-from . import runner, settings
+from . import i18n, runner, settings
 from .agents import get
 from .jobs import Job
 from .model import Session
@@ -26,9 +25,23 @@ MAX_CANDIDATES = 30
 #: Имя файла с перепиской в рабочей папке, если журнал агента нельзя дать модели как есть.
 EXPORT_FILE = "session.txt"
 
-STEP_LAUNCH = "запускается"
-STEP_ANALYZE = "анализирует журнал"
-STEP_WRITE = "пишет сводку"
+# Шаги прогресса — ключи сообщений; шаг чтения хранится номером фрагмента.
+STEP_LAUNCH = "summary.launch"
+STEP_ANALYZE = "summary.analyze"
+STEP_WRITE = "summary.write"
+
+i18n.add({
+    "summary.launch": {"ru": "запускается", "en": "starting"},
+    "summary.reading": {"ru": "читает фрагмент {n}", "en": "reading part {n}"},
+    "summary.analyze": {"ru": "анализирует журнал", "en": "analyzing the log"},
+    "summary.write": {"ru": "пишет сводку", "en": "writing the summary"},
+    "summary.no_journal": {"ru": "Журнал сессии недоступен", "en": "The session log is unavailable"},
+    "summary.bad_answer": {"ru": "{agent} вернул ответ без названия или сводки. Попробуй ещё раз.",
+                           "en": "{agent} returned an answer without a title or summary. Try again."},
+    "summary.not_object": {"ru": "ответ не JSON-объект", "en": "the answer is not a JSON object"},
+    "summary.no_fields": {"ru": "нет строковых полей title и summary", "en": "no string fields title and summary"},
+    "summary.empty_fields": {"ru": "пустые title или summary", "en": "title or summary is empty"},
+})
 
 
 def timeout() -> float:
@@ -55,32 +68,34 @@ class _Progress:
     def __init__(self, job: Job, agent: str):
         self._job = job
         self._agent = agent
-        self.texts = [STEP_LAUNCH]
+        self.steps: list[str | int] = [STEP_LAUNCH]
         self.index = 0
         self._emit()
 
     def _emit(self) -> None:
+        step = self.steps[self.index]
+        text = i18n.t("summary.reading", n=step) if isinstance(step, int) else i18n.t(step)
         self._job.emit({"type": "progress", "step": self.index, "agent": self._agent,
-                        "steps": len(self.texts), "text": self.texts[self.index]})
+                        "steps": len(self.steps), "text": text})
 
     def reading(self, fragment: int) -> None:
-        if self.texts[self.index] in (STEP_ANALYZE, STEP_WRITE):
-            self.texts = self.texts[:self.index]
-        self.texts = self.texts[:fragment + 1]
-        while len(self.texts) <= fragment:
-            self.texts.append(f"читает фрагмент {len(self.texts)}")
+        if self.steps[self.index] in (STEP_ANALYZE, STEP_WRITE):
+            self.steps = self.steps[:self.index]
+        self.steps = self.steps[:fragment + 1]
+        while len(self.steps) <= fragment:
+            self.steps.append(len(self.steps))
         self.index = fragment
         self._emit()
 
     def analyzing(self) -> None:
-        self.texts = self.texts[:self.index + 1] + [STEP_ANALYZE]
-        self.index = len(self.texts) - 1
+        self.steps = self.steps[:self.index + 1] + [STEP_ANALYZE]
+        self.index = len(self.steps) - 1
         self._emit()
 
     def writing(self) -> None:
-        if self.texts[self.index] != STEP_WRITE:
-            self.texts = self.texts[:self.index + 1] + [STEP_WRITE]
-            self.index = len(self.texts) - 1
+        if self.steps[self.index] != STEP_WRITE:
+            self.steps = self.steps[:self.index + 1] + [STEP_WRITE]
+            self.index = len(self.steps) - 1
             self._emit()
 
 
@@ -119,7 +134,7 @@ def loads_answer(text: str) -> dict:
             raise
         answer = json.loads(content[start:end + 1])
     if not isinstance(answer, dict):
-        raise ValueError("ответ не JSON-объект")
+        raise ValueError(i18n.t("summary.not_object"))
     return answer
 
 
@@ -130,10 +145,10 @@ def parse_answer(text: str, valid_keys: set[str]) -> dict:
     title = answer.get("title")
     summary = answer.get("summary")
     if not isinstance(title, str) or not isinstance(summary, str):
-        raise ValueError("нет строковых полей title и summary")
+        raise ValueError(i18n.t("summary.no_fields"))
     title, summary = title.strip(), summary.strip()
     if not title or not summary:
-        raise ValueError("пустые title или summary")
+        raise ValueError(i18n.t("summary.empty_fields"))
 
     next_step = answer.get("next_step", "")
     if not isinstance(next_step, str):
@@ -164,11 +179,12 @@ def parse_answer(text: str, valid_keys: set[str]) -> dict:
 
 
 def run_summary(job: Job, session: Session, current_title: str,
-                candidates: list[tuple[str, str]], store, agent_id: str | None = None) -> None:
+                candidates: list[tuple[str, str]], store, agent_id: str | None = None,
+                model: str = "", effort: str = "") -> None:
     """Собрать сводку по сессии и сохранить её в store."""
     journal = Path(session.journal)
     if not journal.is_file():
-        job.emit({"type": "error", "message": "Журнал сессии недоступен"})
+        job.emit({"type": "error", "message": i18n.t("summary.no_journal")})
         return
     agent, problem = runner.pick("summary", agent_id)
     if agent is None:
@@ -189,13 +205,14 @@ def run_summary(job: Job, session: Session, current_title: str,
             progress.writing()
 
     limit = timeout()
-    with tempfile.TemporaryDirectory(prefix="ai-threads-summary-") as workdir:
+    with runner.run_dir("summary") as workdir:
         plain = get(session.tool).plain_journal(session)
         source = journal if plain else export_transcript(session, Path(workdir) / EXPORT_FILE)
         prompt = build_prompt(session, current_title, candidates, source)
         code, output, answer = runner.run(job, agent, "summary", prompt,
                                           add_dirs=[str(journal.parent)] if plain else [],
-                                          workdir=Path(workdir), timeout=limit, on_event=on_event)
+                                          workdir=Path(workdir), timeout=limit, on_event=on_event,
+                                          model=model, effort=effort)
 
     if job.cancelled:
         return
@@ -204,13 +221,14 @@ def run_summary(job: Job, session: Session, current_title: str,
         return
     answer = answer.strip()
     if not answer:
-        job.emit({"type": "error", "message": f"{agent.name} вернул пустой ответ", "code": code, "output": output})
+        job.emit({"type": "error", "message": i18n.t("runner.empty_answer", agent=agent.name), "code": code,
+                  "output": output})
         return
     try:
         parsed = parse_answer(answer, valid_keys)
     except (ValueError, KeyError, TypeError):
-        job.emit({"type": "error", "message": f"{agent.name} вернул ответ без названия или сводки. "
-                                              "Попробуй ещё раз.", "code": code, "output": output})
+        job.emit({"type": "error", "message": i18n.t("summary.bad_answer", agent=agent.name), "code": code,
+                  "output": output})
         return
 
     result = {**parsed, "at": time.time(), "model": agent.id}

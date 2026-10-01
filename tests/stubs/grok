@@ -11,6 +11,9 @@ from stub_lib import (answer_text, digest_sources, fail_or_hang, is_digest,
 
 def main() -> None:
     argv = sys.argv[1:]
+    if argv[:1] == ["models"]:
+        print("Default model: grok-test\n\nAvailable models:\n  * grok-test (default)\n  - grok-test-fast")
+        return
     prompt = argv[argv.index("-p") + 1] if "-p" in argv else ""
     digest = is_digest(prompt)
     garbage = mode() == "garbage"

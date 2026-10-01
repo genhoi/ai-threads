@@ -10,18 +10,48 @@ from __future__ import annotations
 import datetime
 import json
 import re
-import tempfile
 import time
 from pathlib import Path
 
-from . import runner, settings
+from . import i18n, runner, settings
 from .agents import AGENTS, RUNNERS, get
 from .jobs import Job
 from .model import Session
 from .sources.common import plain_line
 from .summary import export_transcript, loads_answer
 
-STAGES = ["Сбор", "Чтение журналов", "Разбор", "Текст"]
+# Этапы — ключи сообщений: подпись этапа на языке запроса.
+STAGES = ["digest.stage_collect", "digest.stage_read", "digest.stage_parse", "digest.stage_text"]
+
+
+def _handed_ru(sessions, ready, excerpts, needed, autos):
+    plural = i18n.plural_ru
+    return (f"Передано модели: {sessions} {plural(sessions, 'сессия', 'сессии', 'сессий')} "
+            f"({ready} с готовыми сводками, {excerpts} с выдержками, {needed} прочитает сама), "
+            f"{autos} {plural(autos, 'автоматический запуск', 'автоматических запуска', 'автоматических запусков')}")
+
+
+def _handed_en(sessions, ready, excerpts, needed, autos):
+    def count(n, word):
+        return f"{n} {word}" + ("" if n == 1 else "s")
+    return (f"Sent to the model: {count(sessions, 'session')} ({ready} with ready summaries, "
+            f"{excerpts} with excerpts, {needed} to read in full), {count(autos, 'automatic run')}")
+
+
+i18n.add({
+    "digest.stage_collect": {"ru": "Сбор", "en": "Collecting"},
+    "digest.stage_read": {"ru": "Чтение журналов", "en": "Reading logs"},
+    "digest.stage_parse": {"ru": "Разбор", "en": "Analyzing"},
+    "digest.stage_text": {"ru": "Текст", "en": "Writing"},
+    "digest.hint_ready": {"ru": "Составить сводку через {agent}", "en": "Write a digest with {agent}"},
+    "digest.handed": {"ru": _handed_ru, "en": _handed_en},
+    "digest.bad_days": {"ru": "Неверный период: {days} (нужно 3, 4 или 5)",
+                        "en": "Invalid period: {days} (must be 3, 4 or 5)"},
+    "digest.bad_answer": {"ru": "{agent} вернул неверный ответ. Попробуй ещё раз.",
+                          "en": "{agent} returned an invalid answer. Try again."},
+    "digest.no_lead": {"ru": "нет строкового поля lead", "en": "no string field lead"},
+    "digest.not_list": {"ru": "{field} не список", "en": "{field} is not a list"},
+})
 
 #: Предел контекста для полосы «контекст N из 128 тыс.» в интерфейсе.
 TOKEN_LIMIT = 128000
@@ -53,7 +83,7 @@ def models() -> list[dict]:
     for agent_id in RUNNERS:
         agent = AGENTS[agent_id]
         available = agent.enabled() and agent.program() is not None
-        hint = f"Составить сводку через {agent.name}" if available else f"{agent.name} не установлен"
+        hint = i18n.t("digest.hint_ready" if available else "runner.not_installed", agent=agent.name)
         out.append({"id": agent_id, "name": agent.name, "available": available, "hint": hint})
     return out
 
@@ -235,19 +265,16 @@ class _Tracker:
             self.status[s.key] = status
             job.emit({"type": "session", "key": s.key, "status": status})
         self.stage(0)
-        job.emit({"type": "log", "text":
-                  f"Передано модели: {len(manual)} сессий "
-                  f"({with_ready} с готовыми сводками, "
-                  f"{with_excerpt} с выдержками, "
-                  f"{len(self._needed)} прочитает сама), "
-                  f"{len(autos)} автоматических запусков"})
+        job.emit({"type": "log", "text": i18n.t("digest.handed", sessions=len(manual), ready=with_ready,
+                                                 excerpts=with_excerpt, needed=len(self._needed),
+                                                 autos=len(autos))})
 
     # --- события ---------------------------------------------------------
 
     def stage(self, index: int) -> None:
         while self.stage_index < index and self.stage_index < len(STAGES) - 1:
             self.stage_index += 1
-            event = {"type": "stage", "index": self.stage_index, "label": STAGES[self.stage_index]}
+            event = {"type": "stage", "index": self.stage_index, "label": i18n.t(STAGES[self.stage_index])}
             if self.agent:
                 # Страница, открытая заново посреди прогона, узнаёт, какой агент работает.
                 event["agent"] = self.agent
@@ -353,12 +380,12 @@ def parse_digest(text: str, manual_keys: set[str], auto_keys: set[str]) -> dict:
     data = loads_answer(text)
     lead = data.get("lead")
     if not isinstance(lead, str) or not lead.strip():
-        raise ValueError("нет строкового поля lead")
+        raise ValueError(i18n.t("digest.no_lead"))
     result = {"lead": lead.strip(), "projects": [], "tails": [], "autos": []}
 
     projects = data.get("projects")
     if not isinstance(projects, list):
-        raise ValueError("projects не список")
+        raise ValueError(i18n.t("digest.not_list", field="projects"))
     for project in projects[:30]:
         if not isinstance(project, dict):
             continue
@@ -383,7 +410,7 @@ def parse_digest(text: str, manual_keys: set[str], auto_keys: set[str]) -> dict:
 
     tails = data.get("tails")
     if not isinstance(tails, list):
-        raise ValueError("tails не список")
+        raise ValueError(i18n.t("digest.not_list", field="tails"))
     seen_ids: set[str] = set()
     for i, tail in enumerate(tails[:100]):
         if not isinstance(tail, dict):
@@ -406,7 +433,7 @@ def parse_digest(text: str, manual_keys: set[str], auto_keys: set[str]) -> dict:
 
     autos = data.get("autos")
     if not isinstance(autos, list):
-        raise ValueError("autos не список")
+        raise ValueError(i18n.t("digest.not_list", field="autos"))
     for auto in autos[:50]:
         if not isinstance(auto, dict):
             continue
@@ -425,7 +452,8 @@ def parse_digest(text: str, manual_keys: set[str], auto_keys: set[str]) -> dict:
 
 def run_digest(job: Job, sessions: list[Session], days: int, model: str,
                titles: dict[str, str], summaries: dict, hidden, store,
-               today: datetime.date | None = None) -> None:
+               today: datetime.date | None = None, agent_model: str = "",
+               effort: str = "") -> None:
     """Собрать сводку за `days` дней через `model` и сохранить её в store.
 
     Из переданного каталога отбираются сессии периода: ручные (без auto,
@@ -437,8 +465,7 @@ def run_digest(job: Job, sessions: list[Session], days: int, model: str,
         job.emit({"type": "error", "message": problem})
         return
     if days not in (3, 4, 5):
-        job.emit({"type": "error",
-                  "message": f"Неверный период: {days} (нужно 3, 4 или 5)"})
+        job.emit({"type": "error", "message": i18n.t("digest.bad_days", days=days)})
         return
 
     manual, autos = select_for_digest(sessions, days, hidden, today=today)
@@ -451,7 +478,7 @@ def run_digest(job: Job, sessions: list[Session], days: int, model: str,
     prompt = short_prompt(days)
     limit = timeout()
 
-    with tempfile.TemporaryDirectory(prefix="ai-threads-digest-") as workdir:
+    with runner.run_dir("digest") as workdir:
         journals = {}
         for s in digest_manual:
             if not get(s.tool).plain_journal(s):
@@ -464,7 +491,8 @@ def run_digest(job: Job, sessions: list[Session], days: int, model: str,
                            if s.journal and s.key not in journals})
         tracker = _Tracker(job, manual, autos, summaries, excerpts, journals, agent.id)
         code, output, answer = runner.run(job, agent, "digest", prompt, add_dirs=add_dirs,
-                                          workdir=Path(workdir), timeout=limit, on_event=tracker.apply)
+                                          workdir=Path(workdir), timeout=limit, on_event=tracker.apply,
+                                          model=agent_model, effort=effort)
 
     if job.cancelled:
         return
@@ -473,12 +501,13 @@ def run_digest(job: Job, sessions: list[Session], days: int, model: str,
         return
     answer = answer.strip()
     if not answer:
-        job.emit({"type": "error", "message": f"{agent.name} вернул пустой ответ", "code": code, "output": output})
+        job.emit({"type": "error", "message": i18n.t("runner.empty_answer", agent=agent.name), "code": code,
+                  "output": output})
         return
     try:
         parsed = parse_digest(answer, {s.key for s in digest_manual}, {s.key for s in autos})
     except (ValueError, KeyError, TypeError):
-        job.emit({"type": "error", "message": f"{agent.name} вернул неверный ответ. Попробуй ещё раз.",
+        job.emit({"type": "error", "message": i18n.t("digest.bad_answer", agent=agent.name),
                   "code": code, "output": output})
         return
 

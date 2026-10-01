@@ -21,7 +21,7 @@ def test_manual_and_automatic(homes, tool):
     assert manual.project == "sample app"
     assert manual.branch == ("" if tool == "kimi" else "feature/catalog")
     assert manual.created == 1790582400 and manual.updated == 1790589600
-    assert manual.auto is False and manual.by == "я"
+    assert manual.auto is False and manual.by == ""
     assert not manual.empty and manual.last == "Запись найдена. Проверка завершена."
     assert manual.journal.is_file() and manual.meta_path.is_file()
     assert auto.auto is True
@@ -67,7 +67,7 @@ def test_codex_uses_first_source(homes):
     with path.open("a") as stream:
         stream.write(json.dumps({"type": "session_meta", "payload": {"source": "exec"}}) + "\n")
     session = next(s for s in sources.scan("codex", {}) if s.key == key())
-    assert not session.auto and session.by == "я"
+    assert not session.auto and session.by == ""
 
 
 def test_title_precedence_and_kimi_prompt_matching(homes):

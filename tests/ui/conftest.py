@@ -36,9 +36,13 @@ def browser(request):
         instance.close()
 
 
-@pytest.fixture
-def page(browser):
-    context = browser.new_context(viewport={'width': 1440, 'height': 900}, timezone_id='Europe/Samara')
+def open_page(browser, locale):
+    """Страница с языком браузера locale: от него зависят navigator.language и Accept-Language.
+
+    Заголовок задан и явно: WebKit не передаёт Accept-Language в запросы, которые тест
+    перехватил и отправил сам через route.fetch(), и сервер ответил бы по-английски."""
+    context = browser.new_context(viewport={'width': 1440, 'height': 900}, timezone_id='Europe/Samara', locale=locale,
+                                  extra_http_headers={'Accept-Language': locale})
     context.add_init_script("""Object.defineProperty(navigator, 'clipboard', {
         value: {writeText: async text => {window.copiedText = text;}}, configurable: true});""")
     page = context.new_page()
@@ -48,6 +52,18 @@ def page(browser):
     page.unroute_all(behavior='ignoreErrors')
     context.close()
     assert not errors, errors
+
+
+@pytest.fixture
+def page(browser):
+    """Русский браузер: интерфейс и сообщения сервера на русском."""
+    yield from open_page(browser, 'ru-RU')
+
+
+@pytest.fixture
+def page_en(browser):
+    """Английский браузер: интерфейс на английском."""
+    yield from open_page(browser, 'en-US')
 
 
 @pytest.fixture

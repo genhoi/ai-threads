@@ -15,11 +15,10 @@ import datetime
 import json
 import math
 import re
-import tempfile
 import time
 from pathlib import Path
 
-from . import runner, settings
+from . import i18n, runner, settings
 from .agents import AGENTS, get
 from .jobs import Job
 from .model import Session
@@ -29,6 +28,8 @@ from .summary import loads_answer
 QUERY_MAX = 500
 MAX_TERMS = 12
 CANDIDATES = 30
+#: Сколько сессий показывает полный поиск без агента.
+FULL_RESULTS = 100
 RESULTS = 15
 SNIPPETS = 3
 SNIPPET_CHARS = 220
@@ -36,9 +37,25 @@ WHY_MAX = 160
 #: Предел запроса на отбор: у CLI ограничена длина аргумента (у Kimi — 128 КБ).
 PROMPT_MAX = 60_000
 
-STEP_PLAN = "понимает запрос"
-STEP_SCAN = "ищет в журналах"
-STEP_RANK = "отбирает сессии"
+i18n.add({
+    "search.step_plan": {"ru": "понимает запрос", "en": "understanding the query"},
+    "search.nit_single": {"ru": "Запрос из одного слова — ищу «{query}» как есть, без разбора агентом",
+                          "en": "A one-word query: searching for \"{query}\" as is, without asking the agent"},
+    "search.nit_scan": {"ru": "Ищу в журналах {total} сессий: {terms}", "en": "Searching the logs of {total} sessions for: {terms}"},
+    "search.nit_none": {"ru": "Совпадений нет — агенту отправлять нечего", "en": "No matches, nothing to send to the agent"},
+    "search.nit_found": {"ru": "Совпадения в {found} сессиях, агенту ушли {sent} лучших",
+                         "en": "Matches in {found} sessions, the top {sent} went to the agent"},
+    "search.step_scan": {"ru": "ищет в журналах: {done} из {total}", "en": "searching the logs: {done} of {total}"},
+    "search.step_rank": {"ru": "отбирает сессии", "en": "picking sessions"},
+    "search.no_plan": {"ru": "{agent} не разобрал запрос ({error}). Ищу по словам запроса.",
+                       "en": "{agent} couldn't parse the query ({error}). Searching by the query words."},
+    "search.no_rank": {"ru": "{agent} не отобрал сессии ({error}). Показываю совпадения по словам.",
+                       "en": "{agent} couldn't pick sessions ({error}). Showing word matches."},
+    "search.matched": {"ru": "совпали слова: {words}", "en": "matched words: {words}"},
+    "search.no_terms": {"ru": "нет списка terms", "en": "no terms list"},
+    "search.empty_terms": {"ru": "пустой список terms", "en": "the terms list is empty"},
+    "search.no_results": {"ru": "нет списка results", "en": "no results list"},
+})
 
 # Слова, которые не помогают искать: их нет смысла искать в журналах.
 _STOP = {"найди", "найти", "покажи", "сессии", "сессию", "сессия", "сессий", "где", "как", "что", "про",
@@ -70,10 +87,10 @@ def parse_plan(text: str, projects: list[str]) -> dict:
     data = loads_answer(text)
     terms = data.get("terms")
     if not isinstance(terms, list):
-        raise ValueError("нет списка terms")
+        raise ValueError(i18n.t("search.no_terms"))
     clean = _dedupe(t.strip() for t in terms if isinstance(t, str) and 2 <= len(t.strip()) <= 80)[:MAX_TERMS]
     if not clean:
-        raise ValueError("пустой список terms")
+        raise ValueError(i18n.t("search.empty_terms"))
     agents = data.get("agents") if isinstance(data.get("agents"), list) else []
     by_name = {p.lower(): p for p in projects}
     wanted = data.get("projects") if isinstance(data.get("projects"), list) else []
@@ -175,6 +192,26 @@ def score(job: Job, pool: list[Session], terms: list[str], names: dict, summarie
     return ranked
 
 
+def raw_snippet(session: Session, terms: list[str]) -> str:
+    """Фрагмент журнала как есть — вокруг совпадения в выводе команд или прочитанном файле.
+    Только для показа на странице: модели такие фрагменты не уходят."""
+    data = get(session.tool).raw_text(session)
+    low = data.lower()
+    for term in terms:
+        for needle in needles(term):
+            at = low.rfind(needle)
+            if at >= 0:
+                # Вывод команд лежит в журнале строкой JSON, иногда вложенной не раз: убрать экранирование.
+                raw = data[max(0, at - 400):at + 400].decode("utf-8", errors="ignore")
+                raw = re.sub(r'\\+[nrt]', " ", raw)
+                raw = re.sub(r'\\+(["/\\])', r"\1", raw)
+                raw = re.sub(r"\s+", " ", raw)
+                middle = raw.lower().find(term.lower())
+                start = max(0, middle - SNIPPET_CHARS // 2) if middle >= 0 else 0
+                return plain_line(raw[start:start + SNIPPET_CHARS], SNIPPET_CHARS)
+    return ""
+
+
 def snippets(session: Session, terms: list[str]) -> list[str]:
     """Фрагменты видимой переписки с совпадениями. Вывод команд и прочитанные файлы модели
     не отправляются: там бывают токены и пароли. По ним приложение только ищет."""
@@ -223,7 +260,7 @@ def parse_rank(text: str, keys: set[str]) -> list[dict]:
     data = loads_answer(text)
     results = data.get("results")
     if not isinstance(results, list):
-        raise ValueError("нет списка results")
+        raise ValueError(i18n.t("search.no_results"))
     out, seen = [], set()
     for item in results:
         if not isinstance(item, dict) or item.get("key") not in keys or item["key"] in seen:
@@ -251,8 +288,36 @@ def _entry(session: Session, matched: list[str], names: dict, summaries: dict) -
             "first": first, "matched": matched, "snippets": snippets(session, matched)}
 
 
+def run_full_search(job: Job, sessions: list[Session], query: str, scope: str, hidden, names: dict,
+                    summaries: dict) -> None:
+    """Полный поиск без агента: журналы целиком, вместе с выводом команд и прочитанными файлами.
+
+    Слова запроса ищутся без учёта регистра; сессия подходит, если в ней есть все слова.
+    Результат — сессии по числу совпадений с фрагментом вокруг совпадения.
+    """
+    query = " ".join(query.split())[:QUERY_MAX]
+    terms = _dedupe(query.split()) or [query]
+    plan = {"terms": terms, "agents": [], "projects": [], "days": None}
+    pool = select(sessions, plan, scope, hidden)
+
+    def on_progress(done: int, total: int) -> None:
+        job.emit({"type": "progress", "step": 1, "steps": 1, "done": done, "total": total,
+                  "text": i18n.t("search.step_scan", done=done, total=total)})
+
+    ranked = [item for item in score(job, pool, terms, names, summaries, on_progress) if len(item[2]) == len(terms)]
+    if job.cancelled:
+        return
+    results = []
+    for value, session, matched in ranked[:FULL_RESULTS]:
+        found = snippets(session, matched)
+        results.append({"key": session.key, "score": value, "matched": matched,
+                        "snippet": found[0] if found else raw_snippet(session, matched)})
+    job.emit({"type": "result", "result": {"query": query, "terms": terms, "results": results,
+                                           "found": len(ranked), "scanned": len(pool)}})
+
+
 def run_search(job: Job, sessions: list[Session], query: str, scope: str, hidden, names: dict,
-               summaries: dict, agent_id: str | None = None) -> None:
+               summaries: dict, agent_id: str | None = None, model: str = "", effort: str = "") -> None:
     """Найти сессии по запросу и опубликовать результат событием result."""
     query = " ".join(query.split())[:QUERY_MAX]
     agent, problem = runner.pick("search", agent_id)
@@ -264,20 +329,26 @@ def run_search(job: Job, sessions: list[Session], query: str, scope: str, hidden
     everything = {"terms": [], "agents": [], "projects": [], "days": None}
     projects = sorted({s.project for s in select(sessions, everything, scope, hidden)})
     limit = timeout()
-    with tempfile.TemporaryDirectory(prefix="ai-threads-search-") as workdir:
-        progress.emit(1, STEP_PLAN)
-        code, output, answer = runner.run(job, agent, "search-plan", plan_prompt(query, projects), add_dirs=[],
-                                          workdir=Path(workdir), timeout=limit, on_event=lambda event: None)
-        if job.cancelled:
-            return
-        try:
-            if code != 0:
-                raise ValueError(runner.failure(agent, code, limit))
-            plan = parse_plan(answer, projects)
-        except (ValueError, KeyError, TypeError) as error:
-            plan = fallback_plan(query)
-            job.emit({"type": "warning", "message": f"{agent.name} не разобрал запрос ({error}). Ищу по словам запроса.",
-                      "output": output})
+    with runner.run_dir("search") as workdir:
+        if len(query.split()) == 1:
+            # Одно слово или номер задачи: разбирать нечего, ищется как есть.
+            plan = {"terms": [query], "agents": [], "projects": [], "days": None}
+            runner.nit(job, i18n.t("search.nit_single", query=query))
+        else:
+            progress.emit(1, i18n.t("search.step_plan"))
+            code, output, answer = runner.run(job, agent, "search-plan", plan_prompt(query, projects), add_dirs=[],
+                                              workdir=Path(workdir), timeout=limit, on_event=lambda event: None,
+                                              model=model, effort=effort)
+            if job.cancelled:
+                return
+            try:
+                if code != 0:
+                    raise ValueError(runner.failure(agent, code, limit))
+                plan = parse_plan(answer, projects)
+            except (ValueError, KeyError, TypeError) as error:
+                plan = fallback_plan(query)
+                job.emit({"type": "warning", "message": i18n.t("search.no_plan", agent=agent.name, error=error),
+                          "output": output})
         job.emit({"type": "plan", **plan})
         if not plan["terms"]:
             job.emit({"type": "result", "result": {"query": query, "plan": plan, "results": [], "ranked": False,
@@ -285,21 +356,28 @@ def run_search(job: Job, sessions: list[Session], query: str, scope: str, hidden
             return
 
         pool = select(sessions, plan, scope, hidden)
+        runner.nit(job, i18n.t("search.nit_scan", terms=", ".join(plan["terms"]), total=len(pool)))
         ranked = score(job, pool, plan["terms"], names, summaries,
-                       lambda done, total: progress.emit(2, f"{STEP_SCAN}: {done} из {total}"))
+                       lambda done, total: progress.emit(2, i18n.t("search.step_scan", done=done, total=total)))
         if job.cancelled:
             return
         top = ranked[:CANDIDATES]
         result = {"query": query, "plan": plan, "results": [], "ranked": False, "scanned": len(pool)}
         if not top:
+            runner.nit(job, i18n.t("search.nit_none"))
             job.emit({"type": "result", "result": result})
             return
+        # Предварительный результат по совпадениям слов — пока агент отбирает.
+        job.emit({"type": "candidates", "results": [{"key": session.key, "score": value, "matched": matched}
+                                                    for value, session, matched in top]})
+        runner.nit(job, i18n.t("search.nit_found", found=len(ranked), sent=len(top)))
 
-        progress.emit(3, STEP_RANK)
+        progress.emit(3, i18n.t("search.step_rank"))
         entries = [_entry(session, matched, names, summaries) for _, session, matched in top]
         scores = {session.key: value for value, session, _ in top}
         code, output, answer = runner.run(job, agent, "search-rank", rank_prompt(query, entries), add_dirs=[],
-                                          workdir=Path(workdir), timeout=limit, on_event=lambda event: None)
+                                          workdir=Path(workdir), timeout=limit, on_event=lambda event: None,
+                                          model=model, effort=effort)
         if job.cancelled:
             return
         try:
@@ -308,10 +386,10 @@ def run_search(job: Job, sessions: list[Session], query: str, scope: str, hidden
             chosen = parse_rank(answer, set(scores))
             result["ranked"] = True
         except (ValueError, KeyError, TypeError) as error:
-            job.emit({"type": "warning", "message": f"{agent.name} не отобрал сессии ({error}). "
-                                                    "Показываю совпадения по словам.", "output": output})
+            job.emit({"type": "warning", "message": i18n.t("search.no_rank", agent=agent.name, error=error),
+                      "output": output})
             chosen = [{"key": e["key"], "why": (e["snippets"][0] if e["snippets"] else
-                                                "совпали слова: " + ", ".join(e["matched"]))[:WHY_MAX]}
+                                                i18n.t("search.matched", words=", ".join(e["matched"])))[:WHY_MAX]}
                       for e in entries[:RESULTS]]
         result["results"] = [{**item, "score": scores[item["key"]]} for item in chosen]
         job.emit({"type": "result", "result": result})

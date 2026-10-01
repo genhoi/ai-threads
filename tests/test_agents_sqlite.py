@@ -61,14 +61,14 @@ def test_zcode_sessions(zcode_db):
     assert manual.title == "Проверить каталог"
     assert manual.cwd == CWD and manual.project == "sample app" and manual.branch == ""
     assert manual.created == CREATED and manual.updated == UPDATED
-    assert manual.auto is False and manual.by == "я"
+    assert manual.auto is False and manual.by == ""
     assert not manual.empty and manual.last == "Запись найдена. Проверка завершена."
     assert manual.journal == zcode_db and manual.meta_path == zcode_db
     assert manual.command_no_cd == "" and manual.command == ""
     assert manual.resume_hint == "Продолжить можно только в приложении ZCode"
     assert manual.to_json()["resume_hint"] == manual.resume_hint
     empty = sessions[zkey(3)]
-    assert empty.empty and empty.last == "" and empty.title == "Без названия"
+    assert empty.empty and empty.last == "" and empty.title == ""
     assert sources.messages(empty) == []
     # Название по умолчанию — заглушка с датой, вместо неё первый запрос.
     fork = sessions[zkey(4)]
@@ -268,7 +268,7 @@ def test_cursor_sessions(cursor_home):
     assert manual.id == sid() and manual.title == "Проверить каталог"
     assert manual.cwd == CWD and manual.branch == ""
     assert manual.created == CREATED and manual.updated == UPDATED
-    assert manual.auto is False and manual.by == "я"
+    assert manual.auto is False and manual.by == ""
     assert not manual.empty and manual.last == "Запись найдена. Проверка завершена."
     assert manual.journal == folder / "store.db" and manual.meta_path == folder / "meta.json"
     assert manual.command_no_cd == f"cursor-agent --resume {sid()}"
@@ -280,7 +280,7 @@ def test_cursor_sessions(cursor_home):
     # База в режиме WAL прочитана, рядом не появилось ни -wal, ни -shm.
     assert sorted(p.name for p in titled.meta_path.parent.iterdir()) == ["meta.json", "store.db"]
     empty = sessions[ckey(3)]
-    assert empty.empty and empty.title == "Без названия" and empty.cwd == "" and empty.last == ""
+    assert empty.empty and empty.title == "" and empty.cwd == "" and empty.last == ""
     assert sources.messages(empty) == []
     assert sessions[ckey(4)].title == "Собери отчёт по каталогу"
 

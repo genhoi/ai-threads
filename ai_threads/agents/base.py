@@ -5,14 +5,17 @@
 кеш по размеру и времени изменения и разбор начала и конца журнала у них общие.
 """
 
+import json
 import os
+import re
 import shlex
 import shutil
+import subprocess
 from dataclasses import asdict, fields
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .. import settings
+from .. import i18n, settings
 from ..config import home
 from ..model import Session
 from ..sources.common import (HEAD_BYTES, TAIL_BYTES, clean_title, fingerprint, json_rows,
@@ -21,8 +24,13 @@ from ..sources.common import (HEAD_BYTES, TAIL_BYTES, clean_title, fingerprint, 
 # Больше этого с конца журнала умный поиск не читает.
 RAW_BYTES = 128 * 1024 * 1024
 # Меняется вместе с правилами разбора: записи кеша со старой версией перечитываются.
-PARSER_VERSION = 5
-NO_TITLE = "Без названия"
+PARSER_VERSION = 6
+# Название, автор и проект без значения — пустые строки: подпись на нужном языке ставит страница.
+NO_TITLE = ""
+
+i18n.add({
+    "agents.no_runner": {"ru": "{agent} не умеет составлять сводки", "en": "{agent} can't write summaries"},
+})
 
 
 class Agent:
@@ -36,7 +44,7 @@ class Agent:
     program_fallbacks: tuple = ()  # пути к программе относительно папки агента
     resume = ""                # команда продолжения; {id} подставляется в кавычках
     resume_auto = ""           # команда для автоматических сессий, если отличается
-    resume_hint = ""           # подпись вместо команды, когда продолжить из терминала нельзя
+    resume_hint_key = ""       # ключ i18n: подпись вместо команды, когда продолжить из терминала нельзя
     skip_flag = ""             # флаг «без подтверждений» — добавляется галочкой skip_approvals
     runner = False             # умеет составлять сводки (см. headless и stream_events)
     answer_file = False        # ответ модели приходит в файл, а не в поток
@@ -75,6 +83,10 @@ class Agent:
                 return str(candidate)
         return None
 
+    def resume_hint(self) -> str:
+        """Подпись вместо команды продолжения на языке запроса; пустая, если не задана."""
+        return i18n.t(self.resume_hint_key) if self.resume_hint_key else ""
+
     def resume_template(self, session: Session) -> str:
         return self.resume_auto if session.auto and self.resume_auto else self.resume
 
@@ -101,7 +113,7 @@ class Agent:
                 "program": program or "", "program_names": list(self.programs),
                 "needs_program": bool(self.programs or self.program_fallbacks), "enabled": self.enabled(),
                 "sessions": sessions, "resume": self.resume, "resume_auto": self.resume_auto,
-                "resume_hint": self.resume_hint, "skip_flag": self.skip_flag,
+                "resume_hint": self.resume_hint(), "skip_flag": self.skip_flag,
                 "skip_approvals": bool(settings.agent(self.id).get("skip_approvals")),
                 "runner": self.runner, "can_run": bool(self.runner and program)}
 
@@ -143,7 +155,34 @@ class Agent:
     def headless(self, program: str, prompt: str, *, instructions: Path, add_dirs: list[str],
                  out_file: Path | None) -> tuple[list[str], str | None]:
         """Командная строка запуска без человека и текст для stdin (None — не нужен)."""
-        raise ValueError(f"{self.name} не умеет составлять сводки")
+        raise ValueError(i18n.t("agents.no_runner", agent=self.name))
+
+    def models(self) -> dict:
+        """Модели и уровни рассуждений, которые знает сам CLI: {"default_model", "default_effort",
+        "models": [{"id", "name", "efforts", "default_effort"}], "efforts"}. Пустые значения по
+        умолчанию — «как настроено в CLI». Список берётся у CLI при каждом обращении (с кешем на
+        минуту), поэтому новые модели появляются без правки настроек «Нити»."""
+        return {"default_model": "", "default_effort": "", "models": [], "efforts": []}
+
+    def choice_args(self, model: str, effort: str) -> list[str]:
+        """Флаги выбора модели и уровня рассуждений; ставятся сразу после имени программы."""
+        return []
+
+    def session_of(self, row: dict) -> str:
+        """ID сессии CLI из строки потока или пустая строка. По нему агенту можно ответить."""
+        value = row.get("session_id")
+        return value if isinstance(value, str) else ""
+
+    def trace(self, row: dict) -> list[dict]:
+        """Строки журнала для человека из строки потока: что модель думает, пишет, какие
+        инструменты вызывает и что получает. {"kind": "model"|"thinking"|"text"|"tool"|"result"|
+        "usage", "text": ..., "tool": имя инструмента}."""
+        return []
+
+    def reply(self, program: str, session_id: str, text: str, *, instructions: Path, add_dirs: list[str],
+              out_file: Path | None) -> tuple[list[str], str | None]:
+        """Командная строка, которая продолжает сессию без человека сообщением `text`."""
+        raise ValueError(f"{self.name} не умеет продолжать сессию")
 
     def stream_events(self, row: dict) -> list[dict]:
         """События из строки потока: {"read": путь, "call": id}, {"done": id},
@@ -155,6 +194,41 @@ def _expand(value: str) -> Path:
     if value == "~" or value.startswith("~/"):
         return home() / value[2:]
     return Path(value)
+
+
+# Длиннее строка журнала обрезается: вывод команд и прочитанные файлы бывают огромными.
+TRACE_MAX = 4000
+
+
+def clip(text, limit: int = TRACE_MAX) -> str:
+    text = text if isinstance(text, str) else json.dumps(text, ensure_ascii=False)
+    return text if len(text) <= limit else text[:limit] + f" … (+{len(text) - limit})"
+
+
+def toml_top_level(path: Path) -> dict:
+    """Строковые значения верхнего уровня TOML (до первой секции). tomllib есть только с Python 3.11."""
+    values = {}
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return values
+    for line in lines:
+        line = line.strip()
+        if line.startswith("["):
+            break
+        match = re.fullmatch(r'([A-Za-z0-9_]+)\s*=\s*"([^"]*)"', line)
+        if match:
+            values[match.group(1)] = match.group(2)
+    return values
+
+
+def run_quietly(argv: list[str], timeout: float = 15) -> str:
+    """Вывод короткой служебной команды CLI или пустая строка, если не удалось."""
+    try:
+        return subprocess.run(argv, capture_output=True, text=True, timeout=timeout,
+                              stdin=subprocess.DEVNULL).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
 
 
 def instructions_text(path: Path) -> str:
@@ -258,7 +332,7 @@ class JsonlAgent(Agent):
         updated = max(times, default=stat["mtime_ns"] / 10**9)
         created = min(times, default=updated)
         values = {"id": path.stem, "title": first, "cwd": "", "branch": "", "created": created,
-                  "updated": updated, "auto": False, "by": "я"}
+                  "updated": updated, "auto": False, "by": ""}
         extra = {"first_title": first}
         self.describe(path, info, head, rows, values, extra)
         if not self.valid_id(values["id"]):

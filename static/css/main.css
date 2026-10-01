@@ -164,3 +164,68 @@ h1{margin:0;font-size:var(--fs-title);line-height:1.3;font-weight:600;min-width:
 .smart-line{font-size:var(--fs-xs);color:var(--text-2);overflow-wrap:anywhere}
 .smart-line.quiet{color:var(--text-3)}
 .row-sub.smart-why{display:-webkit-box;white-space:normal;-webkit-line-clamp:3;-webkit-box-orient:vertical;color:var(--text-2)}
+/* Строки-действия над лентой, как в палитре команд: полный поиск и вопрос агенту. */
+.feed-actions{display:flex;flex-direction:column;padding:4px 0;border-bottom:1px solid var(--line)}
+.feed-action{display:flex;align-items:center;gap:10px;width:100%;min-width:0;padding:7px 14px 7px 16px;border:0;background:transparent;color:var(--text);font:inherit;font-size:var(--fs-s);text-align:left;cursor:pointer}
+.feed-action:hover,.feed-action.is-sel,.feed-action-row.is-sel{background:var(--accent-soft)}
+.feed-action:disabled{color:var(--text-3);cursor:default;background:transparent}
+.feed-action svg{flex-shrink:0;color:var(--accent)}
+.feed-action:disabled svg{color:var(--text-3)}
+.feed-action-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feed-action .kbd{flex-shrink:0;color:var(--text-3)}
+.feed-action-row{display:flex;align-items:center;padding-right:8px}
+.feed-action-row .feed-action{flex:1;padding-right:6px}
+.feed-action-row .feed-action:hover{background:transparent}
+.feed-action-row:hover{background:var(--accent-soft)}
+.choice-anchor{flex-shrink:0}
+.choice-btn{display:inline-flex;align-items:center;gap:3px;max-width:180px}
+.choice-label{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.choice-btn svg{flex-shrink:0}
+#choice-popup .menu{position:fixed;z-index:9;right:auto;width:270px;max-height:min(440px,70vh);overflow:auto}
+.menu .menu-sec{padding:6px 10px 2px;font-size:var(--fs-xs);color:var(--text-3)}
+.menu .menu-note{padding:2px 10px 6px;font-size:var(--fs-xs);color:var(--text-3);line-height:1.4}
+.menu button[aria-checked="true"]{color:var(--accent)}
+.choice-mark{width:12px;flex-shrink:0;display:inline-flex}
+.choice-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Кандидаты умного поиска и полный поиск. */
+.smart-prelim{padding:8px 16px;font-size:var(--fs-xs);color:var(--accent);border-bottom:1px solid var(--line)}
+.full-bar{height:3px;border-radius:2px;background:var(--line-strong)}
+.full-bar div{height:3px;border-radius:2px;background:var(--accent)}
+.row-sub.full-snippet{display:-webkit-box;white-space:normal;-webkit-line-clamp:3;-webkit-box-orient:vertical;color:var(--text-2);overflow-wrap:anywhere}
+/* «Сессия агента»: журнал умного поиска или сводки на месте переписки. */
+.agent-session .conversation{padding-top:8px}
+.log-msg .speaker .nit-name{color:var(--ok)}
+.log-msg.is-thinking .msg-text{color:var(--text-3);font-style:italic}
+.log-row{display:grid;grid-template-columns:120px minmax(0,1fr);column-gap:16px;padding:3px 0}
+.log-line{min-width:0;font-size:var(--fs-s);line-height:1.5;overflow-wrap:anywhere}
+.log-row.is-quiet .log-line{font-size:var(--fs-xs);color:var(--text-3)}
+.log-row.is-warning .log-line{color:var(--warn)}
+.log-row.is-error .log-line{color:var(--danger);white-space:pre-wrap}
+.log-tool-name{font:var(--fs-xs) var(--font-mono);color:var(--accent)}
+.log-args{font:var(--fs-xs)/1.5 var(--font-mono);color:var(--text-2);white-space:pre-wrap;overflow-wrap:anywhere}
+.log-details summary{cursor:pointer;color:var(--text-2);font-size:var(--fs-s)}
+.log-details summary:hover{color:var(--text)}
+.log-pre{margin:6px 0 2px;max-height:360px;overflow:auto;padding:8px 10px;background:var(--cmd-bg);border:1px solid var(--line);border-radius:var(--radius);font:var(--fs-xs)/1.55 var(--font-mono);color:var(--cmd-ink);white-space:pre-wrap;overflow-wrap:anywhere}
+.log-empty{padding:40px 0;text-align:center;font-size:var(--fs-m);color:var(--text-2)}
+.agent-state{color:var(--text-3)}
+.agent-state.is-running{color:var(--accent)}
+.agent-time{font:var(--fs-xs) var(--font-mono);color:var(--text-3)}
+.agent-back{align-self:flex-start}
+/* Поле ответа агенту — как строка ввода в терминале. */
+.agent-reply{flex-shrink:0;display:flex;flex-direction:column;gap:6px;padding:10px var(--sp-6) 14px;border-top:1px solid var(--line)}
+.reply-form{display:flex;align-items:flex-start;gap:8px;padding:6px 6px 6px 12px;background:var(--cmd-bg);border:1px solid var(--line-strong);border-radius:var(--radius-l)}
+.reply-form:focus-within{border-color:var(--accent)}
+.reply-form .prompt{font:14px/26px var(--font-mono)}
+.reply-form textarea{flex:1;min-width:0;min-height:26px;max-height:160px;padding:3px 0;border:0;outline:0;resize:vertical;background:transparent;color:var(--cmd-ink);font:13.5px/1.5 var(--font-mono)}
+.reply-form textarea::placeholder{color:var(--text-3)}
+.reply-form textarea:disabled{opacity:.55}
+.reply-terminal{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:var(--fs-xs);color:var(--text-3)}
+.reply-terminal code{flex:1 1 240px;min-width:0;font:var(--fs-xs)/1.5 var(--font-mono);color:var(--text-2);overflow-wrap:anywhere}
+@media(max-width:899px){
+ .agent-session{overflow:auto}
+ .agent-reply{padding:10px var(--sp-6) 12px}
+}
+@media(max-width:600px){
+ .log-row{grid-template-columns:80px minmax(0,1fr);column-gap:10px}
+ .choice-btn{max-width:120px}
+}

@@ -7,6 +7,16 @@
 # Ответ: {"cwd": "/путь", "command_no_cd": "claude --resume id"}
 # Если папки нет, переход в домашнюю и сообщение «нет папки · без cd».
 # Агент запускается через bash -ic, после выхода агента оболочка остаётся.
+# Сообщения по-русски, если LC_ALL, LC_MESSAGES или LANG (первая непустая) начинается с ru,
+# иначе по-английски. Пометка «нет папки · без cd» совпадает с terminal.missing_note.
+
+lang_env="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+if [[ "${lang_env,,}" == ru* ]]; then ru=1; else ru=""; fi
+
+# say "по-русски" "in English" — сообщение в stderr на языке окружения.
+say() {
+  if [[ -n "$ru" ]]; then echo "$1" >&2; else echo "$2" >&2; fi
+}
 
 port=""
 key=""
@@ -14,7 +24,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --port)
       if [[ $# -lt 2 ]]; then
-        echo "Нужен порт после --port" >&2
+        say "Нужен порт после --port" "A port is required after --port"
         exec bash -i
       fi
       port="$2"
@@ -28,18 +38,19 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$port" || -z "$key" ]]; then
-  echo "Использование: nit-resume --port ПОРТ КЛЮЧ" >&2
+  say "Использование: nit-resume --port ПОРТ КЛЮЧ" "Usage: nit-resume --port PORT KEY"
   exec bash -i
 fi
 
-if ! parsed=$(python3 - "$port" "$key" << 'PY'
+if ! parsed=$(python3 - "$port" "$key" "$ru" << 'PY'
 import json
 import shlex
 import sys
 import urllib.parse
 import urllib.request
 
-port, key = sys.argv[1], sys.argv[2]
+port, key, ru = sys.argv[1], sys.argv[2], bool(sys.argv[3])
+fail = "Не удалось получить сессию" if ru else "Couldn't get the session"
 query = urllib.parse.urlencode({"key": key})
 url = f"http://127.0.0.1:{port}/api/resolve?{query}"
 request = urllib.request.Request(url)
@@ -48,41 +59,41 @@ try:
     with urllib.request.urlopen(request, timeout=10) as response:
         data = json.load(response)
 except Exception as exc:
-    sys.stderr.write(f"Не удалось получить сессию: {exc}\n")
+    sys.stderr.write(f"{fail}: {exc}\n")
     sys.exit(1)
 if not isinstance(data, dict):
-    sys.stderr.write("Не удалось получить сессию: ответ не объект\n")
+    sys.stderr.write(f"{fail}: " + ("ответ не объект" if ru else "the answer is not an object") + "\n")
     sys.exit(1)
 cwd = data.get("cwd") or ""
 command = data.get("command_no_cd") or ""
 if not isinstance(cwd, str) or not isinstance(command, str):
-    sys.stderr.write("Не удалось получить сессию: нет cwd или command_no_cd\n")
+    sys.stderr.write(f"{fail}: " + ("нет cwd или command_no_cd" if ru else "no cwd or command_no_cd") + "\n")
     sys.exit(1)
 sys.stdout.write(f"cwd={shlex.quote(cwd)}\ncmd={shlex.quote(command)}\n")
 PY
 ); then
-  echo "Не удалось получить сессию." >&2
+  say "Не удалось получить сессию." "Couldn't get the session."
   exec bash -i
 fi
 
 eval "$parsed"
 
 if [[ -z "${cmd:-}" ]]; then
-  echo "У сессии нет команды запуска." >&2
+  say "У сессии нет команды запуска." "The session has no resume command."
   exec bash -i
 fi
 
 if [[ -n "${cwd:-}" && -d "$cwd" ]]; then
   cd -- "$cwd" || {
-    echo "Не удалось перейти в папку: $cwd" >&2
-    echo "нет папки · без cd" >&2
+    say "Не удалось перейти в папку: $cwd" "Couldn't change to the folder: $cwd"
+    say "нет папки · без cd" "no folder · no cd"
     cd -- "$HOME" || true
   }
 else
   if [[ -n "${cwd:-}" ]]; then
-    echo "Папки проекта больше нет: $cwd" >&2
+    say "Папки проекта больше нет: $cwd" "The project folder no longer exists: $cwd"
   fi
-  echo "нет папки · без cd" >&2
+  say "нет папки · без cd" "no folder · no cd"
   cd -- "$HOME" || true
 fi
 

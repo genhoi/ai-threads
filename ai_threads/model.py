@@ -14,7 +14,7 @@ class Session:
     created: float = 0.0
     branch: str = ""
     auto: bool = False        # запуск без человека: codex exec, claude -p, grok headless, kimi -p и т. п.
-    by: str = "я"             # подпись «запустил»
+    by: str = ""              # кто запустил без человека: «codex exec» и т. п.; пусто — человек
     last: str = ""            # последний ответ агента, до 300 символов
     empty: bool = False       # в журнале нет текстовых сообщений
     journal: Path = field(default_factory=Path)  # файл с перепиской
@@ -27,7 +27,7 @@ class Session:
     @property
     def project(self) -> str:
         cwd = self.cwd.rstrip("/")
-        return Path(cwd).name if cwd else "Без проекта"
+        return Path(cwd).name if cwd else ""
 
     @property
     def missing(self) -> bool:
@@ -48,7 +48,7 @@ class Session:
     @property
     def resume_hint(self) -> str:
         from .agents import get
-        return "" if self.command_no_cd else get(self.tool).resume_hint
+        return "" if self.command_no_cd else get(self.tool).resume_hint()
 
     @property
     def command(self) -> str:

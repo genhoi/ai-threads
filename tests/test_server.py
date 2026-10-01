@@ -48,7 +48,8 @@ def request(server, path, body=None, *, method=None, host=None, origin=True, raw
     method = method or ("POST" if body is not None or raw is not None else "GET")
     host = host or f"127.0.0.1:{server.server_port}"
     data = json.dumps(body, ensure_ascii=False).encode() if raw is None and body is not None else raw
-    request_headers = {"Host": host}
+    # Без настройки language язык ответа берётся из Accept-Language; здесь ожидания русские.
+    request_headers = {"Host": host, "Accept-Language": "ru-RU,ru;q=0.9"}
     if method == "POST":
         request_headers["Content-Type"] = "application/json"
         if origin:
@@ -230,11 +231,11 @@ def test_module_signatures_and_ndjson_reconnect(http_server, monkeypatch):
         def running(self):
             return list(self.items.values())
 
-    def summary(job, session, current_title, candidates, store):
+    def summary(job, session, current_title, candidates, store, **choice):
         calls.append(("summary", session.key, current_title, candidates))
         store.set_summary(session.key, {"title": "Сводка", "summary": "Результат"})
 
-    def digest(job, sessions, days, model, titles, summaries, hidden, store):
+    def digest(job, sessions, days, model, titles, summaries, hidden, store, **choice):
         assert sessions and isinstance(titles, dict) and isinstance(summaries, dict)
         assert isinstance(hidden, list)
         store.set_digest(days, {"model": model, "result": {"text": "Готово"}})
@@ -303,7 +304,7 @@ def test_smart_search_route(http_server, monkeypatch):
     from ai_threads import server as server_module
     calls = []
 
-    def run_search(job, sessions, query, scope, hidden, names, summaries):
+    def run_search(job, sessions, query, scope, hidden, names, summaries, **choice):
         calls.append((query, scope, len(sessions)))
         job.emit({"type": "result", "result": {"results": []}})
 
@@ -326,7 +327,7 @@ def test_summary_candidates_are_manual_sessions_from_the_same_folder(http_server
     from ai_threads import server as server_module
     seen = []
 
-    def run_summary(job, session, title, candidates, store):
+    def run_summary(job, session, title, candidates, store, **choice):
         seen.append([key for key, _ in candidates])
 
     real = server_module._module
@@ -342,3 +343,40 @@ def test_summary_candidates_are_manual_sessions_from_the_same_folder(http_server
     assert key("claude") in candidates
     assert key() not in candidates and key("grok") not in candidates
     assert not any(k.endswith("000000000002") for k in candidates)
+
+
+def test_agent_reply_route_validates_input(http_server):
+    assert request(http_server, "/api/agent/reply", {"agent": "zcode", "session": "s1", "text": "x"})[0] == 400
+    assert request(http_server, "/api/agent/reply", {"agent": "kimi", "session": "../x", "text": "x"})[0] == 400
+    assert request(http_server, "/api/agent/reply", {"agent": "kimi", "session": "s1", "text": " "})[0] == 400
+    status, body, _ = request(http_server, "/api/agent/reply", {"agent": "kimi", "session": "s1", "text": "вопрос"})
+    assert status == 200 and body["job"].startswith("reply:")
+
+
+def test_models_route_and_choice_validation(http_server, monkeypatch):
+    from ai_threads.agents import AGENTS
+    monkeypatch.setattr(AGENTS["claude"], "models", lambda: {"default_model": "opus", "default_effort": "",
+                                                            "models": [], "efforts": ["low"]})
+    from ai_threads import runner
+    runner._models_cache.clear()
+    status, body, _ = request(http_server, "/api/models?agent=claude")
+    assert status == 200 and body["agent"] == "claude" and body["default_model"] == "opus"
+    assert request(http_server, "/api/models?agent=zcode")[0] == 400
+    assert request(http_server, "/api/summary", {"key": key(), "model": "bad model"})[0] == 400
+    assert request(http_server, "/api/smart-search", {"q": "x", "agent": "zcode"})[0] == 400
+    assert request(http_server, "/api/digest", {"days": 3, "model": "kimi", "effort": "x;y"})[0] == 400
+
+
+def test_full_search_route(http_server):
+    import time
+    assert request(http_server, "/api/full-search", {"q": " "})[0] == 400
+    status, body, _ = request(http_server, "/api/full-search", {"q": "каталоге", "scope": "all"})
+    assert status == 200 and body["job"].startswith("fullsearch:")
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        events = request(http_server, f"/api/jobs/{body['job']}/events?since=0")[1]
+        if '"result"' in events:
+            break
+        time.sleep(0.1)
+    result = [json.loads(line) for line in events.splitlines() if '"result"' in line][0]["result"]
+    assert result["results"] and result["terms"] == ["каталоге"]

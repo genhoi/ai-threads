@@ -1,12 +1,18 @@
 """Claude Code: `$CLAUDE_HOME/projects/*/<uuid>.jsonl`, история ввода в `history.jsonl`,
 запущенные сессии в `$CLAUDE_HOME/sessions/*.json`."""
 
-from ..sources.common import UUID, claude_user_text, clean_title, update_index
+from ..sources.common import UUID, claude_user_text, clean_title, read_json, update_index
+from .. import i18n
 from .. import live as live_registry
 from .base import JsonlAgent, first_title, shell_prompt
-from .wire import wire_events
+from .wire import wire_events, wire_trace
 
 _STATE = {"idle": "wait", "waiting": "wait", "busy": "work", "shell": "work"}
+
+i18n.add({
+    "claude.where_terminal": {"ru": "Claude Code в терминале", "en": "Claude Code in a terminal"},
+    "claude.where_background": {"ru": "фоновая сессия Claude Code", "en": "Claude Code background session"},
+})
 
 
 class Claude(JsonlAgent):
@@ -39,7 +45,7 @@ class Claude(JsonlAgent):
     def describe(self, path, info, head, rows, values, extra):
         user = next((r for r in head if r.get("type") == "user"), {})
         values["auto"] = user.get("entrypoint") == "sdk-cli"
-        values["by"] = "claude -p" if values["auto"] else "я"
+        values["by"] = "claude -p" if values["auto"] else ""
         for row in rows:
             if row.get("type") in ("user", "assistant") and not row.get("isSidechain"):
                 values["cwd"] = row.get("cwd") or values["cwd"]
@@ -70,6 +76,16 @@ class Claude(JsonlAgent):
         indexed = names.get(session.id, {})
         session.title = entry.get("ai_title") or indexed.get("title") or first_title(entry)
         session.cwd = entry["journal_cwd"] or indexed.get("cwd", "")
+
+    def models(self):
+        configured = read_json(self.home() / "settings.json")
+        aliases = [{"id": alias, "name": alias, "efforts": [], "default_effort": ""}
+                   for alias in ("opus", "sonnet", "fable", "haiku")]
+        return {"default_model": str(configured.get("model") or ""), "default_effort": "",
+                "models": aliases, "efforts": ["low", "medium", "high", "xhigh", "max"]}
+
+    def choice_args(self, model, effort):
+        return (["--model", model] if model else []) + (["--effort", effort] if effort else [])
 
     def live(self, sessions):
         directory = self.home() / "sessions"
@@ -108,12 +124,22 @@ class Claude(JsonlAgent):
     def stream_events(self, row):
         return wire_events(row)
 
+    def trace(self, row):
+        return wire_trace(row)
+
+    def reply(self, program, session_id, text, *, instructions, add_dirs, out_file):
+        argv = [program, "-p", "--resume", session_id, "--output-format", "stream-json", "--verbose",
+                "--tools", "Read", "--permission-mode", "dontAsk"]
+        for directory in add_dirs:
+            argv += ["--add-dir", str(directory)]
+        return argv, text
+
 
 def _where(kind, name) -> str:
     if kind == "interactive":
-        where = "Claude Code в терминале"
+        where = i18n.t("claude.where_terminal")
     elif kind == "bg":
-        where = "фоновая сессия Claude Code"
+        where = i18n.t("claude.where_background")
     else:
         return ""
     if isinstance(name, str) and name.strip():

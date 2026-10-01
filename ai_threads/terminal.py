@@ -13,16 +13,31 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from . import config, settings
+from . import config, i18n, settings
 from .live import live_status
 from .model import Session
 
-ALREADY_OPEN = "уже открыта"
-NO_COMMAND = "нельзя продолжить из терминала"
-MISSING_NOTE = "нет папки · без cd"
-ALL_OPEN_COMMENT = "# все выбранные сессии уже открыты или их нельзя продолжить из терминала"
-NO_FOLDER = "Папки проекта больше нет"
-NEED_WSL = "Windows Terminal доступен только в WSL"
+# Пометка missing_note совпадает с той, что печатает bin/nit-resume.
+i18n.add({
+    "terminal.already_open": {"ru": "уже открыта", "en": "already open"},
+    "terminal.no_command": {"ru": "нельзя продолжить из терминала", "en": "can't be resumed from the terminal"},
+    "terminal.missing_note": {"ru": "нет папки · без cd", "en": "no folder · no cd"},
+    "terminal.all_open": {"ru": "# все выбранные сессии уже открыты или их нельзя продолжить из терминала",
+                          "en": "# all selected sessions are already open or can't be resumed from the terminal"},
+    "terminal.no_folder": {"ru": "Папки проекта больше нет", "en": "The project folder no longer exists"},
+    "terminal.need_wsl": {"ru": "Windows Terminal доступен только в WSL",
+                          "en": "Windows Terminal is only available in WSL"},
+    "terminal.unknown_format": {"ru": "Неизвестный формат: {fmt}", "en": "Unknown format: {fmt}"},
+    "terminal.explorer_wsl": {"ru": "Проводник Windows доступен только в WSL",
+                              "en": "Windows Explorer is only available in WSL"},
+    "terminal.no_windows_path": {"ru": "Не удалось преобразовать путь в формат Windows",
+                                 "en": "Couldn't convert the path to a Windows path"},
+    "terminal.no_vscode": {"ru": "Не нашёл VS Code: программы code нет в PATH",
+                           "en": "VS Code not found: there is no code program in PATH"},
+    "terminal.unknown_app": {"ru": "Неизвестное приложение: {app}", "en": "Unknown app: {app}"},
+    "terminal.no_distro": {"ru": "Не задана переменная WSL_DISTRO_NAME", "en": "WSL_DISTRO_NAME is not set"},
+    "terminal.bad_port": {"ru": "Некорректный порт", "en": "Invalid port"},
+})
 
 
 def environment() -> dict:
@@ -45,12 +60,12 @@ def resume_executable() -> Path:
 def restore_script(sessions: list[Session], fmt: str, port: int) -> str:
     """Текст скрипта wt, tmux или plain. Уже запущенные сессии в текст не входят."""
     if fmt not in ("wt", "tmux", "plain"):
-        raise ValueError(f"Неизвестный формат: {fmt}")
+        raise ValueError(i18n.t("terminal.unknown_format", fmt=fmt))
     if fmt == "wt" and not config.wsl_distro():
-        raise ValueError(NEED_WSL)
+        raise ValueError(i18n.t("terminal.need_wsl"))
     runnable, _skipped, _notes = _partition(sessions)
     if not runnable:
-        return ALL_OPEN_COMMENT
+        return i18n.t("terminal.all_open")
     if fmt == "wt":
         return _wt_script(_wt_argv(runnable, port))
     if fmt == "tmux":
@@ -61,10 +76,10 @@ def restore_script(sessions: list[Session], fmt: str, port: int) -> str:
 def reveal(session: Session, app: str) -> None:
     """Показать папку в проводнике Windows (только WSL) или открыть её в VS Code."""
     if session.missing:
-        raise FileNotFoundError(NO_FOLDER)
+        raise FileNotFoundError(i18n.t("terminal.no_folder"))
     if app == "explorer":
         if not config.wsl_distro():
-            raise RuntimeError("Проводник Windows доступен только в WSL")
+            raise RuntimeError(i18n.t("terminal.explorer_wsl"))
         completed = subprocess.run(
             ["wslpath", "-w", session.cwd],
             capture_output=True,
@@ -72,18 +87,18 @@ def reveal(session: Session, app: str) -> None:
         )
         windows = completed.stdout.strip()
         if completed.returncode != 0 or not windows:
-            detail = completed.stderr.strip() or "Не удалось преобразовать путь в формат Windows"
+            detail = completed.stderr.strip() or i18n.t("terminal.no_windows_path")
             raise RuntimeError(detail)
         _run(["explorer.exe", windows])
     elif app == "vscode":
         if not shutil.which("code"):
-            raise RuntimeError("Не нашёл VS Code: программы code нет в PATH")
+            raise RuntimeError(i18n.t("terminal.no_vscode"))
         if config.wsl_distro():
             _run(["code", "--remote", f"wsl+{_distro()}", session.cwd])
         else:
             _run(["code", session.cwd])
     else:
-        raise ValueError(f"Неизвестное приложение: {app}")
+        raise ValueError(i18n.t("terminal.unknown_app", app=app))
 
 
 def _partition(sessions: list[Session]) -> tuple[list[Session], list[dict], list[dict]]:
@@ -93,14 +108,14 @@ def _partition(sessions: list[Session]) -> tuple[list[Session], list[dict], list
     notes: list[dict] = []
     for session in sessions:
         if session.key in live:
-            skipped.append({"key": session.key, "reason": ALREADY_OPEN})
+            skipped.append({"key": session.key, "reason": i18n.t("terminal.already_open")})
             continue
         if not session.command_no_cd:
-            skipped.append({"key": session.key, "reason": NO_COMMAND})
+            skipped.append({"key": session.key, "reason": i18n.t("terminal.no_command")})
             continue
         runnable.append(session)
         if session.missing:
-            notes.append({"key": session.key, "note": MISSING_NOTE})
+            notes.append({"key": session.key, "note": i18n.t("terminal.missing_note")})
     return runnable, skipped, notes
 
 
@@ -120,7 +135,7 @@ def _wt_argv(sessions: list[Session], port: int) -> list[str]:
             argv.append(";")
         argv.extend([
             "new-tab",
-            "--title", _wt_escape(session.project),
+            "--title", _wt_escape(_label(session)),
             "--tabColor", tab_color(session.tool),
             "wsl.exe",
             "-d", _wt_escape(distro),
@@ -129,6 +144,11 @@ def _wt_argv(sessions: list[Session], port: int) -> list[str]:
             _wt_escape(session.key),
         ])
     return argv
+
+
+def _label(session: Session) -> str:
+    """Заголовок вкладки или окна: проект, а у сессии без папки — начало ID."""
+    return session.project or session.id[:8]
 
 
 def _wt_escape(value: str) -> str:
@@ -166,14 +186,15 @@ def _tmux_script(sessions: list[Session], name: str) -> str:
 
 
 def _tmux_window_argv(session: Session, name: str) -> list[str]:
-    argv = ["tmux", "new-window", "-t", name, "-n", session.project]
+    argv = ["tmux", "new-window", "-t", name, "-n", _label(session)]
     if session.missing:
         argv.extend(["-c", str(Path.home())])
     else:
         argv.extend(["-c", session.cwd])
     command = session.command_no_cd
     if session.missing:
-        command = f"echo {shlex.quote(MISSING_NOTE)}; {command}"
+        note = shlex.quote(i18n.t("terminal.missing_note"))
+        command = f"echo {note}; {command}"
     argv.append(command)
     return argv
 
@@ -192,13 +213,13 @@ def _shell_join(argv: list[str]) -> str:
 def _distro() -> str:
     name = config.wsl_distro()
     if not name:
-        raise RuntimeError("Не задана переменная WSL_DISTRO_NAME")
+        raise RuntimeError(i18n.t("terminal.no_distro"))
     return name
 
 
 def _port_text(port: int) -> str:
     if isinstance(port, bool) or not isinstance(port, int) or not 0 < port < 65536:
-        raise ValueError("Некорректный порт")
+        raise ValueError(i18n.t("terminal.bad_port"))
     return str(port)
 
 

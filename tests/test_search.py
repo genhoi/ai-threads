@@ -200,3 +200,38 @@ def test_tool_output_is_not_sent_to_the_model(tmp_path):
 def test_title_case_cyrillic_is_found():
     assert "База Данных".lower().encode() in [n for n in needles("база данных")] or \
         "База Данных".encode() in needles("база данных")
+
+
+def test_full_search_finds_words_in_tool_output(sessions, tmp_path):
+    from ai_threads.search import run_full_search
+    jobs = Jobs()
+    job = jobs.start("fullsearch:1", "fullsearch", None,
+                     lambda job: run_full_search(job, sessions, "каталоге", "all", [], {}, {}))
+    wait_finished(job)
+    events = all_events(job)
+    progress = [e for e in events if e["type"] == "progress"]
+    assert progress and progress[-1]["done"] == progress[-1]["total"]
+    assert progress[-1]["text"].startswith("ищет в журналах")
+    result = result_of(events)
+    assert result["terms"] == ["каталоге"] and result["found"] == len(result["results"]) > 0
+    assert all(r["snippet"] and "каталог" in r["snippet"].lower() for r in result["results"])
+
+
+def test_full_search_needs_every_word(sessions):
+    from ai_threads.search import run_full_search
+    jobs = Jobs()
+    job = jobs.start("fullsearch:2", "fullsearch", None,
+                     lambda job: run_full_search(job, sessions, "каталоге message_profile", "all", [], {}, {}))
+    wait_finished(job)
+    assert result_of(all_events(job))["results"] == []
+
+
+def test_raw_snippet_shows_tool_output_locally(tmp_path):
+    from ai_threads.model import Session
+    from ai_threads.search import raw_snippet
+    rows = [{"type": "response_item", "payload": {"type": "function_call_output", "output": "ticket SHOP-1042 closed"}}]
+    journal = tmp_path / "1.jsonl"
+    journal.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    session = Session(tool="codex", id="00000000-0000-4000-8000-000000000001", title="t", cwd="", updated=1,
+                      journal=journal)
+    assert "SHOP-1042 closed" in raw_snippet(session, ["shop-1042"])

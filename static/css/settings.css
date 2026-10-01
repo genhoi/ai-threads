@@ -105,7 +105,6 @@ code{font-family:var(--font-mono)}
 .fnote{display:flex;align-items:center;min-height:32px;font-size:var(--fs-m);color:var(--text-2)}
 .unit{font-size:var(--fs-s);color:var(--text-2)}
 .timeout-hint{margin-left:8px}
-.model-box{max-width:420px}
 .seg-ctl.lang{align-self:flex-start}
 
 /* Панели разделов */
