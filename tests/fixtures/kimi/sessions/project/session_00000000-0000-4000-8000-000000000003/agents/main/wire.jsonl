@@ -1,0 +1,2 @@
+{"type": "profile.bind", "agentId": "main", "profileName": "default", "time": 1790582400000}
+{"type": "permission.set_mode", "agentId": "main", "mode": "normal", "time": 1790582400000}

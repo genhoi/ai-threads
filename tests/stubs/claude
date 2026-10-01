@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""Заглушка claude: печатает поток stream-json (события claude --print)."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from stub_lib import (answer_text, digest_sources, fail_or_hang, is_digest,
+                      journals_from,
+                      mode, out, pause_if_slow)
+
+
+def main() -> None:
+    prompt = sys.stdin.read()
+    digest = is_digest(prompt)
+    garbage = mode() == "garbage"
+
+    slow = fail_or_hang()
+    paths = journals_from(digest_sources(prompt))
+    if not paths:
+        paths = ["/nonexistent/journal.jsonl"]
+    if len(paths) == 1:
+        paths = paths * 2
+    out({"type": "system", "subtype": "init", "cwd": "/tmp",
+         "session_id": "stub-session", "tools": ["Read"],
+         "model": "stub-model", "permissionMode": "dontAsk"})
+    out({"type": "system", "subtype": "thinking_tokens",
+         "estimated_tokens": 10, "estimated_tokens_delta": 10,
+         "session_id": "stub-session"})
+    for i, path in enumerate(paths):
+        out({"type": "assistant", "message": {
+            "id": f"msg_{i}", "type": "message", "role": "assistant",
+            "content": [{"type": "tool_use", "id": f"tool_{i}",
+                         "name": "Read", "input": {"file_path": path}}]},
+            "session_id": "stub-session"})
+        if not slow:
+            out({"type": "user", "message": {"role": "user", "content": [{
+                "tool_use_id": f"tool_{i}", "type": "tool_result",
+                "content": "строка журнала " + path}]},
+                "session_id": "stub-session"})
+    if slow:
+        pause_if_slow()
+        for i, path in enumerate(paths):
+            out({"type": "user", "message": {"role": "user", "content": [{
+                "tool_use_id": f"tool_{i}", "type": "tool_result",
+                "content": "строка журнала " + path}]},
+                "session_id": "stub-session"})
+    out({"type": "assistant", "message": {
+        "id": "msg_final", "type": "message", "role": "assistant",
+        "content": [{"type": "text", "text": answer_text(digest, garbage, prompt)}]},
+        "session_id": "stub-session"})
+    out({"type": "system", "subtype": "thinking_tokens",
+         "estimated_tokens": 25, "estimated_tokens_delta": 15,
+         "session_id": "stub-session"})
+    out({"type": "result", "subtype": "success", "is_error": False,
+         "result": answer_text(digest, garbage, prompt),
+         "usage": {"input_tokens": 900, "output_tokens": 120,
+                   "cache_read_input_tokens": 0,
+                   "cache_creation_input_tokens": 0}})
+
+
+if __name__ == "__main__":
+    main()

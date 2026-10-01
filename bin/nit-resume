@@ -1,0 +1,91 @@
+#!/bin/bash
+# Открыть сессию «Нити» в интерактивной оболочке пользователя.
+#
+# nit-resume --port ПОРТ КЛЮЧ
+# GET http://127.0.0.1:ПОРТ/api/resolve?key=КЛЮЧ
+# Заголовок Host: 127.0.0.1:ПОРТ
+# Ответ: {"cwd": "/путь", "command_no_cd": "claude --resume id"}
+# Если папки нет, переход в домашнюю и сообщение «нет папки · без cd».
+# Агент запускается через bash -ic, после выхода агента оболочка остаётся.
+
+port=""
+key=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --port)
+      if [[ $# -lt 2 ]]; then
+        echo "Нужен порт после --port" >&2
+        exec bash -i
+      fi
+      port="$2"
+      shift 2
+      ;;
+    *)
+      key="$1"
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$port" || -z "$key" ]]; then
+  echo "Использование: nit-resume --port ПОРТ КЛЮЧ" >&2
+  exec bash -i
+fi
+
+if ! parsed=$(python3 - "$port" "$key" << 'PY'
+import json
+import shlex
+import sys
+import urllib.parse
+import urllib.request
+
+port, key = sys.argv[1], sys.argv[2]
+query = urllib.parse.urlencode({"key": key})
+url = f"http://127.0.0.1:{port}/api/resolve?{query}"
+request = urllib.request.Request(url)
+request.add_unredirected_header("Host", f"127.0.0.1:{port}")
+try:
+    with urllib.request.urlopen(request, timeout=10) as response:
+        data = json.load(response)
+except Exception as exc:
+    sys.stderr.write(f"Не удалось получить сессию: {exc}\n")
+    sys.exit(1)
+if not isinstance(data, dict):
+    sys.stderr.write("Не удалось получить сессию: ответ не объект\n")
+    sys.exit(1)
+cwd = data.get("cwd") or ""
+command = data.get("command_no_cd") or ""
+if not isinstance(cwd, str) or not isinstance(command, str):
+    sys.stderr.write("Не удалось получить сессию: нет cwd или command_no_cd\n")
+    sys.exit(1)
+sys.stdout.write(f"cwd={shlex.quote(cwd)}\ncmd={shlex.quote(command)}\n")
+PY
+); then
+  echo "Не удалось получить сессию." >&2
+  exec bash -i
+fi
+
+eval "$parsed"
+
+if [[ -z "${cmd:-}" ]]; then
+  echo "У сессии нет команды запуска." >&2
+  exec bash -i
+fi
+
+if [[ -n "${cwd:-}" && -d "$cwd" ]]; then
+  cd -- "$cwd" || {
+    echo "Не удалось перейти в папку: $cwd" >&2
+    echo "нет папки · без cd" >&2
+    cd -- "$HOME" || true
+  }
+else
+  if [[ -n "${cwd:-}" ]]; then
+    echo "Папки проекта больше нет: $cwd" >&2
+  fi
+  echo "нет папки · без cd" >&2
+  cd -- "$HOME" || true
+fi
+
+# bash -ic подхватывает PATH и алиасы из ~/.bashrc. exec оставляет ту же оболочку
+# открытой после команды агента и не возвращается в этот скрипт.
+exec bash -ic "$cmd; exec bash -i"

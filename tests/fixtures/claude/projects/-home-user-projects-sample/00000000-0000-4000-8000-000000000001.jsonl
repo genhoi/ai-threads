@@ -1,0 +1,4 @@
+{"isSidechain": false, "type": "user", "timestamp": "2026-09-28T08:00:00Z", "entrypoint": "cli", "cwd": "/home/user/projects/sample app", "sessionId": "00000000-0000-4000-8000-000000000001", "gitBranch": "feature/catalog", "message": {"role": "user", "content": "Найди запись в каталоге и проверь её название"}}
+{"type": "assistant", "isSidechain": false, "cwd": "/home/user/projects/sample app", "gitBranch": "feature/catalog", "timestamp": "2026-09-28T10:00:00Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "Запись найдена. Проверка завершена."}, {"type": "tool_use", "id": "call-example", "name": "Read", "input": {"file_path": "/home/user/projects/sample/app.py"}}]}}
+{"type": "ai-title", "aiTitle": "Старый заголовок", "sessionId": "00000000-0000-4000-8000-000000000001"}
+{"type": "ai-title", "aiTitle": "Проверить каталог", "sessionId": "00000000-0000-4000-8000-000000000001"}

@@ -1,0 +1,5 @@
+{"type": "profile.bind", "agentId": "main", "profileName": "default", "time": 1790582400000}
+{"type": "permission.set_mode", "agentId": "main", "mode": "normal", "time": 1790582400000}
+{"type": "turn.prompt", "agentId": "main", "input": [{"type": "text", "text": "Проверь изменения без ручного запуска"}], "time": 1790582400000}
+{"type": "agent.message.appended", "message": {"message": {"role": "user", "content": [{"type": "text", "text": "Проверь изменения без ручного запуска"}]}, "meta": {"createdAt": "2026-09-28T08:00:00Z", "source": "user"}}, "time": 1790582400000}
+{"type": "agent.message.appended", "message": {"message": {"role": "assistant", "content": [{"type": "text", "text": "Запись найдена. Проверка завершена."}]}}, "time": 1790589600000}

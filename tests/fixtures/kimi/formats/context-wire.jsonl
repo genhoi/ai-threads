@@ -1,0 +1,11 @@
+{"type":"metadata","protocol_version":"1","created_at":1790582400000}
+{"type":"turn.prompt","agentId":"main","input":[{"type":"text","text":"Проверь изменения без ручного запуска"}],"time":1790582400000}
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"Служебная дата и папка проекта"}],"origin":{"kind":"injection","variant":"environment"}},"time":1790582400000}
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"Проверь изменения без ручного запуска"}],"origin":{"kind":"user"}},"time":1790582400000}
+{"type":"context.append_loop_event","event":{"type":"step.begin","uuid":"step-example","turnId":"turn-example","step":1},"time":1790589600000}
+{"type":"context.append_loop_event","event":{"type":"content.part","uuid":"part-think","stepUuid":"step-example","part":{"type":"think","think":"Служебное рассуждение"}},"time":1790589600000}
+{"type":"context.append_loop_event","event":{"type":"tool.call","uuid":"call-example","name":"Read","args":{"path":"/home/user/projects/sample/app.py"}},"time":1790589600000}
+{"type":"context.append_loop_event","event":{"type":"tool.result","toolCallId":"call-example","result":{"output":"Служебный результат"}},"time":1790589600000}
+{"type":"context.append_message","message":{"role":"user","content":[{"type":"text","text":"Служебное завершение задачи"}],"origin":{"kind":"task"}},"time":1790589600000}
+{"type":"context.append_loop_event","event":{"type":"content.part","uuid":"part-text","stepUuid":"step-example","part":{"type":"text","text":"Запись найдена. Проверка завершена."}},"time":1790589600000}
+{"type":"context.append_loop_event","event":{"type":"step.end","uuid":"step-example","turnId":"turn-example","step":1,"finishReason":"stop"},"time":1790589600000}

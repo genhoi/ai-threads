@@ -1,0 +1,64 @@
+/* Раскладка и элементы экрана «Сводка» поверх перенесённых base.css, main.css и digest.css. */
+.digest-toolbar{flex-shrink:0;display:flex;align-items:center;flex-wrap:wrap;gap:14px;padding:14px var(--sp-6);border-bottom:1px solid var(--line)}
+.digest-toolbar h1{margin:0;font-size:var(--fs-title);font-weight:600}
+.digest-toolbar .btn-primary{height:30px;padding:0 12px;font-size:var(--fs-s)}
+.digest-meta{font-size:var(--fs-s);color:var(--text-3)}
+.digest-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--col-sessions)}
+.digest-main{min-height:0;padding:20px var(--sp-6) 28px}
+.digest-inner{max-width:820px;display:flex;flex-direction:column;gap:22px}
+
+/* Идёт составление */
+.run-head{display:flex;align-items:center;gap:12px}
+.run-head-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.run-title{font-size:var(--fs-l);font-weight:600}
+.run-sub{font-size:var(--fs-s);color:var(--text-3)}
+.run-elapsed{font-variant-numeric:tabular-nums}
+.tokens{width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:4px}
+.tokens-label{font-size:var(--fs-xs);color:var(--text-3)}
+.tokens-bar{height:4px;border-radius:2px;background:var(--line)}
+.tokens-bar>div{height:4px;border-radius:2px;background:var(--text-2)}
+.notes-empty{margin:0;font-size:var(--fs-s);color:var(--text-3)}
+.log-empty{color:var(--text-3)}
+
+/* Готовая сводка */
+.lead{margin:0;font-size:var(--fs-l);line-height:1.6;text-wrap:pretty}
+.proj-side{display:flex;flex-direction:column;gap:3px;padding-top:5px;min-width:0}
+.proj-name{font-family:var(--font-mono);font-size:var(--fs-m);font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.proj-count{font-size:var(--fs-xs);color:var(--text-3)}
+.tail-chips{min-width:0}
+.autos-intro{margin:0;font-size:var(--fs-m);line-height:1.55;color:var(--text-2)}
+.autos-empty{margin:0;font-size:var(--fs-m);color:var(--text-3)}
+.autorow{display:grid;grid-template-columns:18px 130px minmax(0,1fr);column-gap:10px;align-items:start;font-size:var(--fs-m);line-height:1.5}
+.auto-proj{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-2);padding-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Ошибка */
+.digest-error{display:flex;flex-direction:column;gap:10px;padding:14px 16px;background:var(--danger-bg);border-radius:var(--radius-l)}
+.error-title{font-size:var(--fs-m);font-weight:600;color:var(--danger)}
+.error-text{font-size:var(--fs-s);line-height:1.5;color:var(--danger)}
+.error-output{margin:0;max-height:140px;overflow:auto;font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--danger);opacity:.8;white-space:pre-wrap}
+.error-actions{display:flex;gap:8px}
+
+/* Пустое состояние */
+.empty-card{border:1px dashed var(--line-strong);border-radius:var(--radius-l);padding:28px 24px;display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+.empty-title{font-size:var(--fs-l);font-weight:600}
+.empty-text{margin:0;font-size:var(--fs-m);line-height:1.55;color:var(--text-2)}
+.empty-note{margin:0;font-size:var(--fs-s);color:var(--text-3)}
+
+/* Правая колонка «По сессиям» */
+.digest-side{min-height:0;display:flex;flex-direction:column;border-left:1px solid var(--line);background:var(--surface)}
+.side-head{flex-shrink:0;display:flex;align-items:baseline;gap:10px;padding:14px 16px 6px}
+.side-title{font-size:var(--fs-s);font-weight:600}
+.side-note{font-size:var(--fs-xs);color:var(--text-3);font-weight:400}
+.side-list{flex:1;min-height:0;padding-bottom:12px}
+.side-legend{flex-shrink:0;display:flex;flex-wrap:wrap;gap:14px;padding:10px 16px;border-top:1px solid var(--line);font-size:var(--fs-xs);color:var(--text-3)}
+.side-legend span{display:inline-flex;align-items:center;gap:5px}
+.srow-time{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-3);padding-top:2px}
+.srow-main{min-width:0}
+.srow-proj{font-family:var(--font-mono);font-size:var(--fs-xs);color:var(--text-2)}
+.srow-st{display:flex;justify-content:center;padding-top:3px}
+.side-loading{padding:14px 16px;font-size:var(--fs-s);color:var(--text-3)}
+
+@media (max-width:900px){
+  .digest-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) 300px}
+  .digest-side{border-left:0;border-top:1px solid var(--line)}
+}

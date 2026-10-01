@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv
+.pytest_cache/
+test-results/
+/tmp/
+# Локальные настройки Claude Code и макеты Claude Design (открываются только в Claude Design).
+.claude/
+/design/

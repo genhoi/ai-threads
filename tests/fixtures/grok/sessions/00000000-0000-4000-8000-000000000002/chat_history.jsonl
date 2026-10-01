@@ -1,0 +1,3 @@
+{"type": "user", "content": [{"type": "text", "text": "Найди запись в каталоге и проверь её название"}]}
+{"type": "assistant", "content": "Запись найдена. Проверка завершена.", "tool_calls": [{"id": "call-example", "name": "read_file", "arguments": "{}"}]}
+{"type": "tool", "content": "Служебный результат", "tool_call_id": "call-example"}

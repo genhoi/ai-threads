@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""Заглушка codex: печатает поток codex exec --json, ответ пишет в -o файл."""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from stub_lib import (answer_text, digest_sources, fail_or_hang, is_digest,
+                      journals_from,
+                      mode, out, pause_if_slow)
+
+
+def main() -> None:
+    out_file = None
+    argv = sys.argv[1:]
+    if "-o" in argv:
+        out_file = argv[argv.index("-o") + 1]
+    prompt = sys.stdin.read()
+    digest = is_digest(prompt)
+    garbage = mode() == "garbage"
+
+    slow = fail_or_hang()
+    paths = journals_from(digest_sources(prompt))
+    if not paths:
+        paths = ["/nonexistent/journal.jsonl"]
+    if len(paths) == 1:
+        paths = paths * 2
+    paths = paths[:2]
+    out({"type": "thread.started", "thread_id": "stub-thread"})
+    out({"type": "turn.started"})
+    items = []
+    for i, path in enumerate(paths):
+        items.append((f"item_{i}", path))
+        out({"type": "item.started", "item": {
+            "id": f"item_{i}", "type": "command_execution",
+            "command": f"/bin/bash -lc 'cat {path}'",
+            "aggregated_output": "", "exit_code": None,
+            "status": "in_progress"}})
+        if not slow:
+            out({"type": "item.completed", "item": {
+                "id": f"item_{i}", "type": "command_execution",
+                "command": f"/bin/bash -lc 'cat {path}'",
+                "aggregated_output": "строка журнала " + path,
+                "exit_code": 0, "status": "completed"}})
+    if slow:
+        pause_if_slow()
+        for item_id, path in items:
+            out({"type": "item.completed", "item": {
+                "id": item_id, "type": "command_execution",
+                "command": f"/bin/bash -lc 'cat {path}'",
+                "aggregated_output": "строка журнала " + path,
+                "exit_code": 0, "status": "completed"}})
+    text = answer_text(digest, garbage, prompt)
+    out({"type": "item.completed", "item": {"id": "item_final",
+                                            "type": "agent_message", "text": text}})
+    out({"type": "turn.completed", "usage": {
+        "input_tokens": 800, "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0, "output_tokens": 90,
+        "reasoning_output_tokens": 30}})
+    if out_file:
+        with open(out_file, "w", encoding="utf-8") as fh:
+            fh.write(text)
+
+
+if __name__ == "__main__":
+    main()
