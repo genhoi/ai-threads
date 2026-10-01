@@ -357,8 +357,6 @@ def test_models_route_and_choice_validation(http_server, monkeypatch):
     from ai_threads.agents import AGENTS
     monkeypatch.setattr(AGENTS["claude"], "models", lambda: {"default_model": "opus", "default_effort": "",
                                                             "models": [], "efforts": ["low"]})
-    from ai_threads import runner
-    runner._models_cache.clear()
     status, body, _ = request(http_server, "/api/models?agent=claude")
     assert status == 200 and body["agent"] == "claude" and body["default_model"] == "opus"
     assert request(http_server, "/api/models?agent=zcode")[0] == 400

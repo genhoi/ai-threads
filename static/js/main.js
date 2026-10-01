@@ -357,6 +357,7 @@ function renderLive() {
   $('#live-area').hidden = !live;
   $('#live-area').innerHTML = live ? `<div class="notice ${live.state}" data-testid="live-banner"><span class="dot ${live.state}"></span><span><b>${esc(t(live.state === 'wait' ? 'live.wait' : 'live.work'))}</b> · ${esc(live.where)}.${live.state === 'wait' ? esc(t('live.no-reopen')) : ''}</span></div>` : '';
 }
+const summaryShown = new WeakMap();
 function renderSummary() {
   const s = sessionMap.get(ui.key); if (!s || !$('#summary')) return;
   const summary = ui.state.summaries[s.key], job = ui.jobs.get(s.key);
@@ -380,7 +381,9 @@ function renderSummary() {
   }
   const related = summary ? (summary.related || []).filter(r => sessionMap.has(r.key)) : [];
   if (related.length) html += `<div class="ctx-row"><span class="ctx-label">${esc(t('summary.related'))}</span><div class="related">${related.map(r => `<button class="chip-s" data-testid="related-chip" data-key="${esc(r.key)}" title="${esc(r.why)}">${toolIcon(sessionMap.get(r.key).tool,14)}<span class="t">${esc(name(sessionMap.get(r.key)))}</span><span class="why">· ${esc(r.why)}</span></button>`).join('')}</div></div>`;
-  $('#summary').innerHTML = html;
+  // Тот же блок не перерисовывается: замена разметки посреди клика съела бы его.
+  const box = $('#summary');
+  if (summaryShown.get(box) !== html) { summaryShown.set(box, html); box.innerHTML = html; }
   renderChoices();
   // Сводка составлена раньше: если сервер ещё помнит задание, журнал можно собрать из его событий.
   if (summary && !job && !log && jobsChecked) loadLog(logId, {key:s.key});

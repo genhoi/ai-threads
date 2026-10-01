@@ -552,23 +552,24 @@ async function recheck() {
 async function save() {
   if (ui.saving || problemsNote()) return;
   ui.saving = true; ui.saveError = ''; refresh();
+  let config;
   try {
-    const config = await api('/api/settings', {settings: settingsOf(ui.form)});
-    ui.saving = false;
-    applyConfig(config, true);
-    render();
-    toast(t('save.done'));
+    config = await api('/api/settings', {settings: settingsOf(ui.form)});
   } catch (error) {
     ui.saving = false; ui.saveError = error.message; refresh();
     $('#save')?.focus();
     return;
   }
-  // Сохранение меняет доступность агентов для сводок и скрытые сессии: перечитать их без спешки.
+  // Сохранение меняет доступность агентов для сводок и скрытые сессии. Их перечитываем до
+  // перерисовки: вторая перерисовка следом за первой съела бы клик, пришедшийся между ними.
   try {
     const [models, feed] = await Promise.all([api('/api/digest/models'), api('/api/sessions')]);
     ui.models = models; ui.sessions = feed.sessions;
-    render(); renderNav();
   } catch { /* останутся прежние */ }
+  ui.saving = false;
+  applyConfig(config, true);
+  render(); renderNav();
+  toast(t('save.done'));
 }
 function onInput(input) {
   const {agent, field, kind} = input.dataset;

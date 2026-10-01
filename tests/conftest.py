@@ -51,6 +51,9 @@ def isolated_agents(tmp_path_factory, monkeypatch):
     monkeypatch.setenv("LANG", "ru_RU.UTF-8")
     monkeypatch.delenv("LC_ALL", raising=False)
     monkeypatch.delenv("LC_MESSAGES", raising=False)
+    # Списки моделей кешируются на минуту: подмена из одного теста не должна дожить до другого.
+    from ai_threads import runner
+    runner._models_cache.clear()
 
 
 @pytest.fixture
