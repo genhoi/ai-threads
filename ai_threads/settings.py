@@ -8,7 +8,6 @@
 import copy
 import json
 import os
-import re
 import tempfile
 import threading
 from pathlib import Path
@@ -17,13 +16,12 @@ from . import i18n
 from .config import home
 
 LANGUAGES = ("auto", "ru", "en")
-OPEN_WITH = ("auto", "wt", "tmux", "plain")
-TMUX_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,40}$")
+# Поля скрипта восстановления сессий, которого больше нет. Файл с ними остаётся рабочим: поля
+# молча отбрасываются и пропадут из файла при следующем сохранении с экрана настроек.
+RETIRED = ("open_with", "tmux_session")
 
 DEFAULTS = {
     "agents": {},
-    "open_with": "auto",
-    "tmux_session": "nit",
     "summary": {"agent": "auto", "timeout": 300},
     "digest": {"agent": "auto", "timeout": 900},
     "search": {"agent": "auto", "timeout": 300},
@@ -48,8 +46,6 @@ i18n.add({
                               "en": "agents.{agent}: allowed fields are {fields}"},
     "settings.need_bool": {"ru": "{name}: нужно true или false", "en": "{name}: must be true or false"},
     "settings.one_of": {"ru": "{name}: одно из {values}", "en": "{name}: one of {values}"},
-    "settings.tmux_name": {"ru": "tmux_session: латинские буквы, цифры, точка, дефис и подчёркивание",
-                           "en": "tmux_session: Latin letters, digits, dot, hyphen and underscore only"},
     "settings.kind_fields": {"ru": "{kind}: допустимы поля agent и timeout",
                              "en": "{kind}: allowed fields are agent and timeout"},
     "settings.kind_agent": {"ru": "{kind}.agent: auto или один из {agents}",
@@ -189,7 +185,7 @@ def validate(data) -> dict:
 
     if not isinstance(data, dict):
         raise Invalid("settings.need_object")
-    unknown = set(data) - set(DEFAULTS)
+    unknown = set(data) - set(DEFAULTS) - set(RETIRED)
     if unknown:
         raise Invalid("settings.unknown", names=", ".join(sorted(unknown)))
     result = {}
@@ -213,14 +209,6 @@ def validate(data) -> dict:
                     continue
                 clean[field] = _string(value, name)
             result["agents"][agent_id] = clean
-    if "open_with" in data:
-        if data["open_with"] not in OPEN_WITH:
-            raise Invalid("settings.one_of", name="open_with", values=", ".join(OPEN_WITH))
-        result["open_with"] = data["open_with"]
-    if "tmux_session" in data:
-        if not isinstance(data["tmux_session"], str) or not TMUX_NAME.fullmatch(data["tmux_session"]):
-            raise Invalid("settings.tmux_name")
-        result["tmux_session"] = data["tmux_session"]
     for kind in ("summary", "digest", "search"):
         if kind not in data:
             continue

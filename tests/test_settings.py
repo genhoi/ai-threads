@@ -34,6 +34,14 @@ def test_old_template_fields_are_rejected():
         settings.validate({"agents": {"codex": {"skip_approvals": "yes"}}})
 
 
+def test_retired_restore_fields_are_dropped_without_error():
+    # open_with и tmux_session были у скрипта восстановления: файл с ними не должен ломать настройки.
+    write({"open_with": "tmux", "tmux_session": "work", "language": "en"})
+    assert settings.error() is None
+    assert settings.stored() == {"language": "en"}
+    assert "open_with" not in settings.effective() and "tmux_session" not in settings.effective()
+
+
 def test_configured_program_is_used_in_the_command(tmp_path):
     program = tmp_path / "{cwd} bin" / "codex"
     program.parent.mkdir()

@@ -109,7 +109,7 @@ def test_ready_does_not_label_an_incomplete_snapshot(http_server, monkeypatch):
     assert result["ready"] is False
 
 
-def test_session_state_and_resolve_routes(http_server):
+def test_session_and_state_routes(http_server):
     status, catalog, _ = request(http_server, "/api/sessions")
     assert status == 200 and catalog["ready"] and len(catalog["sessions"]) == 13
     assert catalog["port"] == http_server.server_port
@@ -121,9 +121,8 @@ def test_session_state_and_resolve_routes(http_server):
     assert request(http_server, "/api/name", {"key": key(), "name": "Моё название"})[1]["names"][key()] == "Моё название"
     status, state, _ = request(http_server, "/api/state")
     assert state["pins"] == [key()] and state["done"] == [key()] and state["hidden"] == [key()]
-    status, resolved, _ = request(http_server, "/api/resolve?key=" + key())
-    assert status == 200 and set(resolved) == {"cwd", "command", "command_no_cd", "tool", "project"}
-    assert resolved["command"] == "cd -- '/home/user/projects/sample app' && codex resume " + key().split(":")[1]
+    sample = next(s for s in catalog["sessions"] if s["key"] == key())
+    assert sample["command"] == "cd -- '/home/user/projects/sample app' && codex resume " + key().split(":")[1]
     status, transcript, _ = request(http_server, "/api/session?key=" + key())
     assert status == 200 and not transcript["truncated"]
     assert [m["role"] for m in transcript["messages"]] == ["user", "assistant"]
@@ -173,7 +172,7 @@ def test_invalid_json_and_missing_session(http_server):
     for raw in (b"null", b"[]", b"{broken", b'{"key":NaN}'):
         assert request(http_server, "/api/pin", raw=raw)[0] == 400
     assert request(http_server, "/api/session?key=codex:unknown")[0] == 404
-    assert request(http_server, "/api/resolve?key=../../etc/passwd")[0] == 400
+    assert request(http_server, "/api/session?key=../../etc/passwd")[0] == 400
     assert request(http_server, "/api/unknown")[0] == 404
 
 
@@ -196,7 +195,7 @@ def test_unconnected_modules_return_503(http_server, monkeypatch):
         ("/api/live", None), ("/api/digest/models", None),
         ("/api/summary", {"key": key()}), ("/api/digest", {"days": 3, "model": "kimi"}),
         ("/api/reveal", {"key": key(), "app": "explorer"}),
-        ("/api/restore-script?keys=" + key(), None),
+        ("/api/terminals", None), ("/api/terminal/open", {"key": key()}), ("/api/terminal/close", {"key": key()}),
     ]:
         assert request(http_server, path, body)[:2] == (503, {"error": "Модуль ещё не подключён"})
 
@@ -247,8 +246,7 @@ def test_module_signatures_and_ndjson_reconnect(http_server, monkeypatch):
                "summary": types.SimpleNamespace(run_summary=summary),
                "digest": types.SimpleNamespace(run_digest=digest, models=lambda: [{"id": "kimi", "available": True}]),
                "live": types.SimpleNamespace(live_status=lambda sessions: {key(): {"state": "work", "where": sessions[key()].cwd, "since": 1}}),
-               "terminal": types.SimpleNamespace(restore_script=lambda sessions, fmt, port: f"{fmt}:{port}: " + sessions[0].command,
-                                                  reveal=reveal)}
+               "terminal": types.SimpleNamespace(reveal=reveal)}
     monkeypatch.setattr("ai_threads.server._module", modules.__getitem__)
     request(http_server, "/api/name", {"key": key(), "name": "Текущее"})
     assert request(http_server, "/api/summary", {"key": key()})[1] == {"job": "summary:" + key()}
@@ -266,7 +264,6 @@ def test_module_signatures_and_ndjson_reconnect(http_server, monkeypatch):
     assert request(http_server, "/api/digest/models")[1][0]["available"]
     assert request(http_server, "/api/digest/tail", {"id": "tail-1", "done": True})[1]["digest_tails"] == {"tail-1": True}
     assert request(http_server, "/api/open", {"keys": [key()], "mode": "tmux"})[0] == 404
-    assert request(http_server, "/api/restore-script?keys=" + key() + "&fmt=wt")[1].startswith(f"wt:{http_server.server_port}: cd --")
     assert request(http_server, "/api/reveal", {"key": key(), "app": "vscode"})[0] == 200
     assert ("reveal", key(), "vscode") in calls
 

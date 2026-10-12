@@ -27,17 +27,13 @@ def open_main(page, server, key=None):
     expect(page.get_by_test_id('session')).to_have_attribute('data-key', key or KEY)
 
 
-def test_escape_closes_menu_before_leaving_pick_mode(page, ui_server):
+def test_escape_closes_menu_and_keeps_session(page, ui_server):
     open_main(page, ui_server)
-    page.get_by_test_id('pick-enter').click()
-    expect(page.get_by_test_id('restore')).to_be_visible()
     page.get_by_test_id('data-menu').click()
     expect(page.get_by_test_id('data-export')).to_be_visible()
     page.keyboard.press('Escape')
     expect(page.get_by_test_id('data-export')).to_have_count(0)
-    expect(page.get_by_test_id('restore')).to_be_visible()
-    page.keyboard.press('Escape')
-    expect(page.get_by_test_id('restore')).to_have_count(0)
+    expect(page.get_by_test_id('session')).to_have_attribute('data-key', KEY)
 
 
 def test_click_outside_menu_does_not_activate_the_row(page, ui_server):
@@ -169,22 +165,6 @@ def test_search_skips_project_subtitle_and_marks_long_hit(page, ui_server):
     expect(row.locator('mark')).to_have_text('уникальныйфрагмент')
 
 
-def test_restore_heading_notes_and_skipped_singular(page, ui_server):
-    status = {KEY: {'state': 'work', 'where': 'tmux nit:1', 'since': 1}}
-    page.route('**/api/live', lambda route: route.fulfill(json=status))
-    open_main(page, ui_server)
-    expect(page.locator(f'[data-testid="row"][data-key="{KEY}"] .dot.work')).to_be_visible()
-    page.get_by_test_id('pick-enter').click()
-    page.locator(f'[data-testid="row"][data-key="{KEY}"]').click()
-    note = page.locator('[data-testid="restore"] .restore-heading .restore-note')
-    expect(note).to_have_text('1 выбрано · 1 уже открыта — пропущу')
-    expect(page.locator('.script-note')).to_contain_text('nit-resume')
-    page.get_by_test_id('fmt-tmux').click()
-    expect(page.locator('.script-note')).to_have_text('Выполняется внутри WSL. Сессии откроются окнами в tmux-сессии nit.')
-    page.get_by_test_id('fmt-plain').click()
-    expect(page.locator('.script-note')).to_have_text('Вставляйте по одной в отдельные вкладки WSL.')
-
-
 def test_related_stays_while_summary_runs(page, ui_server):
     ui_server.store.set_summary(KEY, SUMMARY)
     page.route('**/api/jobs', lambda route: route.fulfill(json=[{
@@ -227,15 +207,6 @@ def test_summary_idle_color_open_meta_and_missing_icon(page, ui_server):
     page.reload()
     page.get_by_test_id('summary-toggle').click()
     expect(page.locator('[data-testid="summary-row"] .summary-when')).to_have_css('font-size', '11.5px')
-
-
-def test_pick_next_matches_toolbar_and_checkbox_is_icon(page, ui_server):
-    page.set_viewport_size({'width': 760, 'height': 900})
-    open_main(page, ui_server)
-    page.get_by_test_id('pick-enter').click()
-    expect(page.get_by_test_id('pick-next')).to_have_css('height', '30px')
-    expect(page.locator('.chk svg').first).to_be_attached()
-    expect(page.locator('.chk').first).not_to_contain_text('✓')
 
 
 def test_loading_header_counts_partial_sessions(page, ui_server):

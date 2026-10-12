@@ -20,6 +20,7 @@ const icons = {
   info: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2M12 7.8v.1"/>'),
   spark: svg('<path d="M11 4l1.8 5.2L18 11l-5.2 1.8L11 18l-1.8-5.2L4 11l5.2-1.8z"/><path d="M18.5 3v4M16.5 5h4"/>',13,2),
   branch: svg('<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9c0 5-6 4-11 8"/>',14),
+  back: svg('<path d="M15 6l-6 6 6 6"/>',18,2.2),
 };
 const starFilled = `<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.5 5.9.6-4.5 4 1.3 5.9-5.3-3-5.3 3 1.3-5.9-4.5-4 5.9-.6z" fill="currentColor"/></svg>`;
 const warnIcon = `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round"/><path d="M12 10v4M12 17.2v.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
@@ -29,9 +30,9 @@ const button = (id, text, cls = 'btn', extra = '') => `<button type="button" dat
 const kbd = (key) => `<span class="kbd" aria-hidden="true">${key}</span>`;
 // project: null — лента без фильтра по проекту; '' — фильтр по сессиям без проекта.
 const ui = {section:'mine', key:'', view:'list', project:null, q:'', inConv:false, hideDone:false, showLast:true,
-  ready:false, sessions:[], state:{pins:[], names:{}, summaries:{}, done:[], hidden:[]}, live:{},
-  limit:50, picking:false, picked:new Set(), fmt:'plain', editing:false, summaryOpen:false, jobs:new Map(),
-  messages:new Map(), expanded:new Set(), snippets:new Map(), menu:'', script:null,
+  ready:false, sessions:[], state:{pins:[], names:{}, summaries:{}, done:[], hidden:[]}, live:{}, terms:{}, pane:new Map(),
+  limit:50, editing:false, summaryOpen:false, jobs:new Map(),
+  messages:new Map(), expanded:new Set(), snippets:new Map(), menu:'',
   config:{agents:[], runners:[], env:{}, settings:{}}, smart:null, full:null, log:'', cursor:''};
 let sessionMap = new Map(), visible = [], searchController, searchTimer, toastTimer, undo, renderingFeed = false;
 
@@ -86,12 +87,7 @@ async function copy(text, element, notice) {
 function name(s) { return ui.state.names[s.key] || s.title || t('untitled'); }
 function projectLabel(project) { return project || t('no-project'); }
 function env() { return ui.config.env || {}; }
-function applyConfig(config) {
-  ui.config = config; registerAgents(config.agents); renderChoices();
-  const chosen = config.settings?.open_with;
-  ui.fmt = formats().includes(chosen) ? chosen : env().wsl ? 'wt' : env().tmux ? 'tmux' : 'plain';
-}
-function formats() { return ['wt','tmux','plain'].filter(fmt => fmt !== 'wt' || env().wsl); }
+function applyConfig(config) { ui.config = config; registerAgents(config.agents); renderChoices(); }
 // Кто составит сводку или проведёт умный поиск: агент, выбранный в меню рядом с кнопкой,
 // иначе агент из настроек, иначе первый установленный. auto — без учёта меню.
 function plannedRunner(kind = 'summary', auto = false) {
@@ -222,10 +218,6 @@ function renderNav() {
   const btn = $(test('wait-next')); btn.hidden = !waits.length;
   btn.innerHTML = `<span class="dot wait"></span>${esc(t('wait-count', {n:waits.length}))}`;
 }
-function dayPick(offset) {
-  const date = new Date(); date.setDate(date.getDate() + offset);
-  return ui.sessions.filter(s => mine(s) && inProject(s) && day(s.updated) === calendarDay(date) && !ui.state.done.includes(s.key) && !ui.live[s.key]);
-}
 function legacyData() {
   try {
     const pins = JSON.parse(localStorage.getItem('nit.pins') || '[]');
@@ -235,7 +227,7 @@ function legacyData() {
 }
 function renderTools() {
   const hideTitle = esc(t(ui.hideDone ? 'feed.show-done' : 'feed.hide-done')), lastTitle = esc(t('feed.show-last'));
-  $('#feed-tools').innerHTML = !ui.ready ? '' : ui.picking ? `<div class="feed-tools pick-tools"><strong data-testid="pick-count">${esc(t('pick.count', {n:ui.picked.size}))}</strong>${button('pick-yesterday',esc(t('pick.yesterday')),'link')}${button('pick-today',esc(t('pick.today')),'link')}${button('pick-none',esc(t('pick.none')),'link')}<span class="grow"></span>${button('pick-next',esc(t('pick.next')),'btn btn-primary pick-next')}${button('pick-done',esc(t('pick.done')))}</div>` : `<div class="feed-tools">${button('pick-yesterday',`${icons.terminal}${esc(t('feed.yesterday', {n:dayPick(-1).length}))}`)}${button('pick-enter',esc(t('feed.pick')),'link')}<span class="grow"></span>${button('toggle-hide-done',icons.done,'icon-btn',`aria-pressed="${ui.hideDone}" aria-label="${hideTitle}" title="${hideTitle}"`)}${button('toggle-last',icons.last,'icon-btn',`aria-pressed="${ui.showLast}" aria-label="${lastTitle}" title="${lastTitle}"`)}</div>`;
+  $('#feed-tools').innerHTML = !ui.ready ? '' : `<div class="feed-tools"><span class="list-note" data-testid="list-note">${esc(t(`feed.note-${ui.section}`))}</span><span class="grow"></span>${button('toggle-hide-done',icons.done,'icon-btn',`aria-pressed="${ui.hideDone}" aria-label="${hideTitle}" title="${hideTitle}"`)}${button('toggle-last',icons.last,'icon-btn',`aria-pressed="${ui.showLast}" aria-label="${lastTitle}" title="${lastTitle}"`)}</div>`;
   const legacy = legacyData();
   $('#feed-banners').innerHTML = (ui.project !== null ? `<div class="feed-banner" data-testid="project-filter">${esc(t('project.filter', {project:projectLabel(ui.project)}))}${button('project-filter-clear',icons.close,'icon-btn',`aria-label="${esc(t('project.filter-clear'))}"`)}</div>` : '') +
     (!ui.state.migrated_local_storage && (legacy.pins.length || Object.keys(legacy.names).length) ? `<div class="feed-banner" data-testid="migrate-banner">${esc(t('migrate.banner', {pins:legacy.pins.length, names:Object.keys(legacy.names).length}))}${button('migrate-button',esc(t('migrate.button')),'btn sm')}</div>` : '');
@@ -259,9 +251,9 @@ function rowHit(s) {
 function row(s, pinned = false, why = null, found = null) {
   const hit = why === null && !found && rowHit(s);
   const status = ui.live[s.key]?.state, done = ui.state.done.includes(s.key);
-  const cls = `row${ui.picking ? ' picking' : ''}${!ui.picking && !agentShown() && s.key === ui.key ? ' is-sel' : ''}${ui.picking && ui.picked.has(s.key) ? ' is-picked' : ''}${done ? ' is-done' : ''}`;
-  return `<button type="button" class="${cls}" data-testid="row" data-key="${esc(s.key)}" ${ui.picking ? `aria-pressed="${ui.picked.has(s.key)}"` : ''}>
-    ${ui.picking ? `<span class="chk ${ui.picked.has(s.key) ? 'on' : ''}" aria-hidden="true">${checkBox}</span>` : ''}${toolIcon(s.tool,18)}<span class="row-content"><span class="row-top"><span class="row-project">${highlighted(projectLabel(s.project))}</span>${s.branch ? `<span class="row-branch">${highlighted(s.branch)}</span>` : ''}${s.missing ? `<span class="warn-text">${esc(t('row.no-folder'))}</span>` : ''}<span class="row-tail">${done ? `<span class="ok-text">${esc(t('done'))}</span>` : ''}${status ? `<span class="dot ${status}" title="${esc(t(status === 'wait' ? 'live.wait' : 'live.work'))}"></span>` : ''}${pinned ? pinnedMark(s.updated) : time(s.updated)}</span></span><span class="row-title">${highlighted(name(s))}</span>${found ? `<span class="row-sub full-snippet" data-testid="full-snippet">${marked(found.snippet, found.terms)}</span>` : why !== null ? `<span class="row-sub smart-why" data-testid="smart-why" title="${esc(why)}">${esc(why)}</span>` : hit ? `<span class="row-sub"><b>${esc(hit[1])}:</b> ${highlighted(hit[0])}</span>` : ui.showLast && s.last ? `<span class="row-sub">${esc(s.last)}</span>` : ''}</span></button>`;
+  const cls = `row${!agentShown() && s.key === ui.key ? ' is-sel' : ''}${done ? ' is-done' : ''}`;
+  return `<button type="button" class="${cls}" data-testid="row" data-key="${esc(s.key)}">
+    ${toolIcon(s.tool,18)}<span class="row-content"><span class="row-top"><span class="row-project">${highlighted(projectLabel(s.project))}</span>${s.branch ? `<span class="row-branch">${highlighted(s.branch)}</span>` : ''}${s.missing ? `<span class="warn-text">${esc(t('row.no-folder'))}</span>` : ''}<span class="row-tail">${done ? `<span class="ok-text">${esc(t('done'))}</span>` : ''}${status ? `<span class="dot ${status}" title="${esc(t(status === 'wait' ? 'live.wait' : 'live.work'))}"></span>` : ''}${pinned ? pinnedMark(s.updated) : time(s.updated)}</span></span><span class="row-title">${highlighted(name(s))}</span>${found ? `<span class="row-sub full-snippet" data-testid="full-snippet">${marked(found.snippet, found.terms)}</span>` : why !== null ? `<span class="row-sub smart-why" data-testid="smart-why" title="${esc(why)}">${esc(why)}</span>` : hit ? `<span class="row-sub"><b>${esc(hit[1])}:</b> ${highlighted(hit[0])}</span>` : ui.showLast && s.last ? `<span class="row-sub">${esc(s.last)}</span>` : ''}</span></button>`;
 }
 function renderFeed(reset = false) {
   if (!ui.ready) return;
@@ -416,12 +408,21 @@ function commandMarkup(s) {
 }
 function commandBlock(s) {
   if (!s.command_no_cd) return `<div class="command-box no-command" data-testid="resume-hint">${icons.info}<span>${esc(s.resume_hint || t('command.none'))}</span></div>`;
-  return `<div class="command-box" data-testid="command" data-command="${esc(s.command)}"><code><span class="prompt">$ </span>${commandMarkup(s)}</code><div class="command-actions">${button('copy-command',`${esc(t('copy'))} ${kbd('C')}`,'btn btn-primary','aria-live="polite"')}</div></div>`;
+  return `<div class="command-box" data-testid="command" data-command="${esc(s.command)}"><code><span class="prompt">$ </span>${commandMarkup(s)}</code><div class="command-actions"><span id="term-action" class="term-action">${terminalButton(s)}</span>${button('copy-command',`${esc(t('copy'))} ${kbd('C')}`,'btn lg','aria-live="polite"')}</div></div>`;
 }
 function renderSession() {
   const s = sessionMap.get(ui.key);
-  if (!s) { $('#main').innerHTML = `<div class="loading-view muted">${esc(t('session.select'))}</div>`; return; }
-  $('#main').innerHTML = `<section class="session" data-testid="session" data-key="${esc(s.key)}"><div class="session-top" id="session-top"></div><div class="command-area">${commandBlock(s)}<div id="live-area"></div>${s.missing && s.command_no_cd ? `<div class="notice missing" data-testid="missing-banner" role="alert">${warnIcon}<span>${esc(t('command.missing'))}</span>${button('copy-no-cd',esc(t('command.copy-no-cd')),'btn sm')}</div>` : ''}</div><section class="ctx" id="summary" aria-label="${esc(t('summary.aria'))}"></section><div class="conversation-heading"><strong>${esc(t('conv.heading'))}</strong><small id="conversation-note"></small></div><div class="conversation scroll" data-testid="conversation"></div></section>`;
+  if (!s) { detachTerminal(); $('#main').innerHTML = `<div class="loading-view muted">${esc(t('session.select'))}</div>`; return; }
+  const card = `<div class="command-area">${commandBlock(s)}<div id="live-area"></div>${s.missing && s.command_no_cd ? `<div class="notice missing" data-testid="missing-banner" role="alert">${warnIcon}<span>${esc(t('command.missing'))}</span>${button('copy-no-cd',esc(t('command.copy-no-cd')),'btn sm')}</div>` : ''}</div><section class="ctx" id="summary" aria-label="${esc(t('summary.aria'))}"></section><div class="conversation-heading"><strong>${esc(t('conv.heading'))}</strong><small id="conversation-note"></small></div><div class="conversation scroll" data-testid="conversation"></div>`;
+  if (ui.terms[s.key]) {
+    // С терминалом шапка терминала заменяет заголовок сессии, а карточка — вторая вкладка.
+    const pane = paneOf(s.key);
+    $('#main').innerHTML = `<section class="session has-term" data-testid="session" data-key="${esc(s.key)}"><div class="tbar" id="term-bar" data-testid="term-bar"></div><div class="term-pane" id="term-pane" data-testid="term-pane" ${pane === 'term' ? '' : 'hidden'}><div class="term-host" id="term-host"></div><div id="term-status"></div></div><div class="term-card" id="term-card" data-testid="term-card" ${pane === 'card' ? '' : 'hidden'}>${card}</div></section>`;
+    renderTermBar(); renderTermStatus(); attachTerminal(s.key);
+  } else {
+    detachTerminal();
+    $('#main').innerHTML = `<section class="session" data-testid="session" data-key="${esc(s.key)}"><div class="session-top" id="session-top"></div>${card}</section>`;
+  }
   renderTitle(); renderLive(); renderSummary(); renderConversation();
   if (!ui.messages.has(s.key)) loadConversation(s.key);
 }
@@ -429,56 +430,186 @@ function renderMenus() {
   renderChoices();
   $(test('data-menu')).setAttribute('aria-expanded',ui.menu === 'data');
   $('#data-popup').innerHTML = ui.menu === 'data' ? `<div class="menu" role="menu"><a role="menuitem" data-testid="data-export" href="/api/export" download>${esc(t('data.export'))}</a>${button('data-import',esc(t('data.import')),'','role="menuitem"')}</div>` : '';
-  const popup = $('#session-popup'), s = sessionMap.get(ui.key);
+  const popup = $('#session-popup'), termPopup = $('#term-popup'), s = sessionMap.get(ui.key);
+  if (termPopup && s) {
+    $(test('term-menu')).setAttribute('aria-expanded',ui.menu === 'term');
+    termPopup.innerHTML = ui.menu === 'term' ? `<div class="menu term-menu" role="menu" aria-label="${esc(t('term.actions'))}">${button('term-copy-attach',esc(t('term.copy-attach')),'','role="menuitem"')}${button('menu-copy-id',`${esc(t('menu.copy-id'))}<span class="hint">${esc(s.id.slice(0,8))}…</span>`,'','role="menuitem"')}<div class="sep"></div>${button('term-close',`${esc(t('term.close'))}<span class="hint">${esc(t('term.close-hint'))}</span>`,'danger','role="menuitem"')}</div>` : '';
+  }
   if (!popup || !s) return;
   $(test('session-menu')).setAttribute('aria-expanded',ui.menu === 'session');
   const item = (id, key, extra = '') => button(id, esc(t(key)), '', `role="menuitem" ${extra}`);
   popup.innerHTML = ui.menu === 'session' ? `<div class="menu" role="menu" aria-label="${esc(t('session.actions'))}">${button('menu-copy-id',`${esc(t('menu.copy-id'))}<span class="hint">${esc(s.id.slice(0,8))}…</span>`,'','role="menuitem"')}${item('menu-copy-path','menu.copy-path')}${env().wsl ? item('menu-explorer','menu.explorer',s.missing ? 'disabled' : '') : ''}${env().code ? item('menu-vscode','menu.vscode',s.missing ? 'disabled' : '') : ''}<div class="sep"></div>${item('menu-done',ui.state.done.includes(s.key) ? 'menu.undone' : 'menu.done')}${item('menu-hide',ui.state.hidden.includes(s.key) ? 'menu.unhide' : 'menu.hide')}</div>` : '';
 }
 function closeMenu() { ui.menu = ''; renderMenus(); }
-function pickedSessions() { return ui.sessions.filter(s => ui.picked.has(s.key)); }
-// В скрипт идут сессии, которые ещё не открыты и которые можно продолжить из терминала.
-function restoreKeys() { return pickedSessions().filter(s => !ui.live[s.key] && s.command_no_cd).map(s => s.key); }
-let scriptRequest = 0;
-async function loadScript() {
-  const revision = ++scriptRequest, keys = restoreKeys(); ui.script = null;
-  if (!keys.length) {
-    const live = pickedSessions().filter(s => ui.live[s.key]).length;
-    ui.script = t(live === pickedSessions().length ? 'restore.all-open' : live ? 'restore.open-or-blocked' : 'restore.all-blocked');
-    if ($(test('script'))) $(test('script')).textContent = ui.script;
-    return;
-  }
-  try {
-    const script = await api(`/api/restore-script?${new URLSearchParams({keys:keys.join(','),fmt:ui.fmt})}`,undefined,{text:true});
-    if (revision !== scriptRequest) return;
-    ui.script = script;
-    if ($(test('script'))) $(test('script')).textContent = script;
-    if ($(test('copy-script'))) $(test('copy-script')).disabled = false;
-  } catch (error) {
-    if (revision === scriptRequest && $(test('script'))) $(test('script')).textContent = error.message;
-  }
+// Терминал справа: агент сессии в tmux, на странице — xterm.js. Сервер держит агента в tmux,
+// страница подключается к нему по WebSocket и отключается при уходе с сессии; агент при этом работает.
+// tty — текущее подключение: {key, host, xterm, fit, socket, observer, output, lost, closed}.
+let tty = null, xtermModules = null;
+const shownHtml = new WeakMap();
+// Перерисовать блок, только если разметка изменилась: замена посреди клика съела бы его.
+function setHtml(element, html) {
+  if (!element || shownHtml.get(element) === html) return;
+  shownHtml.set(element, html); element.innerHTML = html;
 }
-function renderRestore() {
-  ui.script = null; scriptRequest++;
-  const picked = pickedSessions(), open = picked.filter(s => ui.live[s.key]).length;
-  const blocked = picked.filter(s => !ui.live[s.key] && !s.command_no_cd).length, wsl = env().wsl;
-  const notes = {
-    wt: t('restore.note-wt'),
-    tmux: (wsl ? t('restore.note-wsl') : '') + t('restore.note-tmux', {name:ui.config.settings?.tmux_session || 'nit'}),
-    plain: t(wsl ? 'restore.note-plain-wsl' : 'restore.note-plain'),
+function paneOf(key) { return ui.terms[key] ? ui.pane.get(key) || 'term' : 'card'; }
+// Почему сессию нельзя открыть в терминале; пусто — можно.
+function terminalBlocker(s) {
+  if (!env().tmux) return t('term.no-tmux');
+  if (s.missing) return t('term.no-folder');
+  if (ui.live[s.key]) return t('term.elsewhere');
+  return '';
+}
+function terminalButton(s) {
+  const term = ui.terms[s.key];
+  if (term?.state === 'running') return button('term-show', `${icons.terminal}${esc(t('term.show'))}`, 'btn btn-primary');
+  if (term) return button('term-resume', `${icons.terminal}${esc(t('term.resume-in'))}`, 'btn btn-primary');
+  const why = terminalBlocker(s);
+  return button('term-open', `${icons.terminal}${esc(t('term.open'))} ${kbd('O')}`, `btn btn-primary${why ? ' is-off' : ''}`,
+    `title="${esc(why || t('term.open-title'))}"${why ? ' aria-disabled="true"' : ''}`);
+}
+function renderTermAction() {
+  const s = sessionMap.get(ui.key); if (!s) return;
+  setHtml($('#term-action'), terminalButton(s));
+}
+function termState(key) {
+  const term = ui.terms[key], live = ui.live[key];
+  if (!term) return null;
+  if (term.state === 'exited') return {cls:`exit${term.code ? ' err' : ''}`, label:term.code ? t('term.state-code', {code:term.code}) : t('term.state-exited')};
+  if (tty?.key !== key || !tty.output) return {cls:'start', spin:true, label:t('term.state-start')};
+  if (live?.state === 'wait' || live?.state === 'work') return {cls:live.state, dot:live.state, label:t(`term.state-${live.state}`)};
+  return {cls:'open', label:t('term.state-open')};
+}
+function renderTermBar() {
+  const bar = $('#term-bar'), s = sessionMap.get(ui.key); if (!bar || !s) return;
+  const state = termState(s.key), pane = paneOf(s.key), pinned = ui.state.pins.includes(s.key);
+  const starLabel = esc(t(pinned ? 'unpin' : 'pin')), back = esc(t('back'));
+  setHtml(bar, `${button('back-to-list',icons.back,'icon-btn back',`aria-label="${back}" title="${back}"`)}${toolIcon(s.tool,18)}<span class="tb-title" data-testid="term-title" title="${esc(name(s))}">${esc(name(s))}</span><span class="tb-meta">${esc(projectLabel(s.project))}</span>${s.branch ? `<span class="tb-meta with-icon">${icons.branch}${esc(s.branch)}</span>` : ''}`
+    + (state ? `<span class="state ${state.cls}" data-testid="term-state" aria-live="polite">${state.spin ? '<span class="spin"></span>' : ''}${state.dot ? `<span class="dot ${state.dot}"></span>` : ''}${esc(state.label)}</span>` : '')
+    + `<span class="grow"></span><div class="seg-ctl" role="group" aria-label="${esc(t('term.view'))}">${button('term-view-term',esc(t('term.tab-term')),'',`aria-pressed="${pane === 'term'}"`)}${button('term-view-card',esc(t('term.tab-card')),'',`aria-pressed="${pane === 'card'}"`)}</div>`
+    + `${button('pin',pinned ? starFilled : icons.star,'icon-btn',`aria-pressed="${pinned}" aria-label="${starLabel}" title="${starLabel}"`)}<span class="menu-anchor">${button('term-menu',icons.menu,'icon-btn',`aria-label="${esc(t('term.actions'))}" aria-haspopup="menu" aria-expanded="${ui.menu === 'term'}"`)}<span id="term-popup"></span></span>`);
+  renderMenus();
+}
+// Поверх терминала: «запускается», «агент завершился» с кнопками или «связь прервалась».
+function renderTermStatus() {
+  const box = $('#term-status'), s = sessionMap.get(ui.key); if (!box || !s) return;
+  const term = ui.terms[s.key];
+  let html = '';
+  if (term?.state === 'exited') {
+    const when = term.activity ? time(term.activity) : '';
+    html = `<div class="t-end${term.code ? ' err' : ''}" data-testid="term-exited" role="status"><span>${esc(term.code ? t('term.exited-code', {code:term.code, time:when}) : t('term.exited', {time:when}))}</span>${button('term-resume',esc(t('term.resume')),'btn btn-primary')}${button('term-exit-close',esc(t('term.close-short')))}</div>`;
+  } else if (tty?.key === s.key && tty.lost) {
+    html = `<div class="t-end" data-testid="term-lost" role="status"><span>${esc(t('term.lost'))}</span>${button('term-reconnect',esc(t('term.reconnect')))}</div>`;
+  } else if (term && (tty?.key !== s.key || !tty.output)) {
+    html = `<div class="term-starting" data-testid="term-starting"><span class="spin"></span>${esc(t('term.starting', {agent:toolName(s.tool)}))}</div>`;
+  }
+  setHtml(box, html);
+}
+function loadXterm() {
+  xtermModules ||= Promise.all([import('/vendor/xterm/xterm.esm.js'), import('/vendor/xterm/addon-fit.esm.js')])
+    .then(([xterm, fit]) => ({Terminal:xterm.Terminal, FitAddon:fit.FitAddon}));
+  return xtermModules;
+}
+// Скопировать без всплывающего сообщения: выделение в терминале копируют часто.
+function copyQuietly(text) { navigator.clipboard.writeText(text).catch(() => {}); }
+function fromBase64(text) { return new TextDecoder().decode(Uint8Array.from(atob(text), c => c.charCodeAt(0))); }
+async function attachTerminal(key) {
+  const host = $('#term-host');
+  if (!host || (tty?.key === key && tty.host === host && tty.socket?.readyState <= 1)) return;
+  detachTerminal();
+  const state = tty = {key, host, output:false, lost:false, closed:false};
+  const {Terminal, FitAddon} = await loadXterm();
+  await document.fonts.load('13px "JetBrains Mono"').catch(() => {});
+  if (tty !== state || !host.isConnected) return;
+  const xterm = state.xterm = new Terminal({fontFamily:"'JetBrains Mono', ui-monospace, monospace", fontSize:13, lineHeight:1.2,
+    cursorBlink:true, scrollback:1000, theme:{background:'#131417', foreground:'#e8e6e1', cursor:'#f2b544', cursorAccent:'#131417',
+    selectionBackground:'rgba(242,181,68,.32)'}});
+  const fit = state.fit = new FitAddon();
+  xterm.loadAddon(fit); xterm.open(host);
+  if (host.offsetWidth) fit.fit();
+  const socket = state.socket = new WebSocket(`ws://${location.host}/api/terminal/socket?${new URLSearchParams({key, cols:xterm.cols, rows:xterm.rows})}`);
+  socket.binaryType = 'arraybuffer';
+  const encoder = new TextEncoder(), send = data => { if (socket.readyState === 1) socket.send(data); };
+  socket.onmessage = event => {
+    if (typeof event.data === 'string') return;
+    xterm.write(new Uint8Array(event.data));
+    if (!state.output) { state.output = true; renderTermBar(); renderTermStatus(); }
   };
-  const pill = (cls, key) => `<span class="pill ${cls}">${esc(t(key))}</span>`;
-  const badges = s => (ui.live[s.key] ? pill('ok','restore.badge-open') : '') + (!s.command_no_cd ? pill('warn','restore.badge-blocked') : s.missing ? pill('warn','restore.badge-missing') : '');
-  const note = t('restore.picked', {n:picked.length}) + (open ? ` · ${t('restore.open', {n:open})}` : '') + (blocked ? ` · ${t('restore.blocked', {n:blocked})}` : '');
-  $('#main').innerHTML = `<section class="restore" data-testid="restore"><div class="restore-heading">${button('back-to-list',esc(t('back')),'link back')}<h1>${esc(t('restore.title'))}</h1><span class="restore-note">${esc(note)}</span><div class="grow"></div>${button('pick-done',`${esc(t('close'))} ${kbd('Esc')}`)}</div>${!picked.length ? `<div class="conversation-empty">${esc(t('restore.empty'))}<br>${button('pick-yesterday',esc(t('restore.pick-yesterday')),'link')}</div>` : `<div class="picked-list scroll">${picked.map(s => `<div class="pick-row" data-testid="picked-row" data-key="${esc(s.key)}">${toolIcon(s.tool,18)}<span class="pick-project">${esc(projectLabel(s.project))}</span><span class="pick-title">${esc(name(s))}</span><span class="pick-badges">${badges(s)}</span>${button('pick-remove',icons.close,'icon-btn',`aria-label="${esc(t('restore.remove'))}" data-key="${esc(s.key)}"`)}</div>`).join('')}</div><div class="actions"><span class="restore-note">${esc(t('restore.how'))}</span><div class="seg-ctl" role="group" aria-label="${esc(t('restore.format'))}">${formats().map(fmt => button(`fmt-${fmt}`,esc(t(`restore.fmt-${fmt}`)),'',`aria-pressed="${ui.fmt === fmt}"`)).join('')}</div><span class="grow"></span>${button('copy-script',`${esc(t('restore.copy'))} ${kbd('C')}`,'btn btn-primary','disabled')}</div><pre class="script scroll" data-testid="script">${esc(t('restore.preparing'))}</pre><div class="script-note">${esc(notes[ui.fmt])}</div>`}</section>`;
-  if (picked.length) loadScript();
+  socket.onclose = () => {
+    if (tty !== state || state.closed) return;
+    // Закрыли терминал или перезапустили «Нить»: что из этого — скажет список терминалов.
+    state.lost = true; renderTermStatus();
+    refreshTerminals().then(() => {
+      if (tty === state && ui.terms[key]?.state === 'running') setTimeout(() => { if (tty === state) attachTerminal(key); }, 1500);
+    });
+  };
+  xterm.onData(data => send(encoder.encode(data)));
+  xterm.onBinary(data => send(Uint8Array.from(data, c => c.charCodeAt(0) & 255)));
+  xterm.onResize(({cols, rows}) => send(JSON.stringify({type:'resize', cols, rows})));
+  // Выделение мышью делает tmux и отдаёт его последовательностью OSC 52: она и попадает в буфер обмена.
+  xterm.parser.registerOscHandler(52, data => {
+    const text = data.slice(data.indexOf(';') + 1);
+    if (text && text !== '?') { try { copyQuietly(fromBase64(text)); } catch { /* Не base64 — нечего копировать. */ } }
+    return true;
+  });
+  xterm.attachCustomKeyEventHandler(event => {
+    if (event.type !== 'keydown' || !event.ctrlKey || event.altKey || event.metaKey) return true;
+    // Ctrl+C с выделением (Shift+мышь) копирует, без выделения уходит агенту. Ctrl+V вставляет, как в Windows Terminal.
+    if (event.code === 'KeyC' && (event.shiftKey || xterm.hasSelection())) { copyQuietly(xterm.getSelection()); xterm.clearSelection(); event.preventDefault(); return false; }
+    if (event.code === 'KeyV') return false;
+    return true;
+  });
+  state.observer = new ResizeObserver(() => { if (host.offsetWidth && host.offsetHeight) fit.fit(); });
+  state.observer.observe(host);
+  if (paneOf(key) === 'term') xterm.focus();
 }
-function renderMain() { if (ui.ready) ui.picking ? renderRestore() : agentShown() ? renderAgent() : renderSession(); layout(); }
+function detachTerminal() {
+  const state = tty; if (!state) return;
+  tty = null; state.closed = true;
+  state.observer?.disconnect();
+  try { state.socket?.close(); } catch { /* Уже закрыт. */ }
+  state.xterm?.dispose();
+}
+// Размер до подключения — по месту справа; точный размер xterm пришлёт после подключения.
+function termSize() {
+  const main = $('#main');
+  return {cols:Math.floor((main.clientWidth - 30) / 7.8), rows:Math.floor((main.clientHeight - 60) / 15.6)};
+}
+async function openTerminal(key) {
+  detachTerminal();
+  const term = await api('/api/terminal/open', {key, ...termSize()});
+  ui.terms = {...ui.terms, [key]:term}; ui.pane.set(key, 'term');
+  if (ui.key === key && !agentShown()) renderMain();
+}
+async function closeTerminal(key) {
+  if (tty?.key === key) detachTerminal();
+  await api('/api/terminal/close', {key});
+  const next = {...ui.terms}; delete next[key];
+  ui.terms = next; ui.pane.delete(key); ui.menu = '';
+  if (ui.key === key && !agentShown()) renderMain();
+  toast(t('term.closed'));
+}
+function showPane(pane) {
+  const s = sessionMap.get(ui.key); if (!s || !ui.terms[s.key] || !$('#term-pane')) return;
+  ui.pane.set(s.key, pane);
+  $('#term-pane').hidden = pane !== 'term'; $('#term-card').hidden = pane !== 'card';
+  renderTermBar();
+  if (pane === 'term') tty?.xterm?.focus();
+}
+async function refreshTerminals() {
+  let next;
+  try { next = await api('/api/terminals'); } catch { return; }
+  const before = ui.terms; ui.terms = next;
+  if (JSON.stringify(before) === JSON.stringify(next) || !ui.ready || agentShown()) return;
+  // Терминал появился или закрылся (в другой вкладке, после перезапуска): справа другая раскладка.
+  if (!!before[ui.key] !== !!next[ui.key]) { renderMain(); return; }
+  renderTermBar(); renderTermStatus(); renderTermAction();
+}
+function renderMain() { if (ui.ready) agentShown() ? renderAgent() : renderSession(); layout(); }
 function select(key, show = true, replace = false) {
   if (!sessionMap.has(key)) return;
   const changed = ui.key !== key;
   const fromAgent = agentShown();
-  ui.key = key; ui.editing = false; ui.summaryOpen = false; ui.menu = ''; ui.picking = false; ui.log = ''; ui.cursor = '';
+  ui.key = key; ui.editing = false; ui.summaryOpen = false; ui.menu = ''; ui.log = ''; ui.cursor = '';
   if (show || ui.view === 'agent') ui.view = 'session';
   writeHash(replace); renderFeed();
   if (changed || fromAgent || !$(test('session'))) renderMain(); else { renderTitle(); renderSummary(); layout(); }
@@ -488,7 +619,7 @@ function change(path, body) {
   // Снимки состояния применяются последовательно, включая чтение после завершения сводки.
   const pending = stateWrite.then(async () => {
     ui.state = await api(path,body);
-    renderFeed(); if (!ui.editing) renderTitle(); renderSummary();
+    renderFeed(); if (!ui.editing) renderTitle(); renderSummary(); renderTermBar();
   });
   stateWrite = pending.catch(() => {});
   return pending;
@@ -806,7 +937,7 @@ function replyJobs(id, list) {
   return list || [];
 }
 function shown(log) { return !!log && agentShown() && ui.log === log.id && !!$('#agent-entries'); }
-function agentShown() { return !!ui.log && ui.view !== 'session' && !ui.picking; }
+function agentShown() { return !!ui.log && ui.view !== 'session'; }
 function logEvent(log, job, event, reply = false) {
   if (!event.n || event.n <= (log.seen[job] || 0)) return;
   log.seen[job] = event.n;
@@ -878,7 +1009,7 @@ async function loadLog(id, extra) {
 }
 // Показать справа «сессию агента». Сводка возвращается к своей сессии кнопкой «← К сессии».
 function openLog(id) {
-  ui.log = id; ui.view = 'agent'; ui.picking = false; ui.editing = false; ui.menu = '';
+  ui.log = id; ui.view = 'agent'; ui.editing = false; ui.menu = '';
   writeHash(); renderFeed(); renderMain();
 }
 function closeLog() {
@@ -891,6 +1022,7 @@ function agentTitle(log) {
   return log?.q ? t('smart.heading', {q:log.q}) : t('log.search');
 }
 function renderAgent() {
+  detachTerminal();
   let log = logs.get(ui.log);
   // Журнала ещё нет (перезагрузка, ссылка): собрать из событий задания, пока сервер его помнит.
   if (jobsChecked && (!log || (!log.loaded && !log.live.size && !log.loading))) {
@@ -1086,7 +1218,7 @@ async function pollLive() {
   try {
     const next = await api('/api/live'), changed = JSON.stringify(next) !== JSON.stringify(ui.live);
     ui.live = next;
-    if (changed) { renderNav(); renderFeed(); renderLive(); if (ui.picking) renderRestore(); }
+    if (changed) { renderNav(); renderFeed(); renderLive(); renderTermBar(); renderTermAction(); }
   } catch { /* Следующий опрос обновит статусы; команды обрабатывают собственные ошибки. */ }
 }
 function search() {
@@ -1100,20 +1232,11 @@ function search() {
     } catch (error) { if (error.name !== 'AbortError') toast(error.message); }
   },200);
 }
-function togglePick(key) {
-  ui.picked.has(key) ? ui.picked.delete(key) : ui.picked.add(key);
-  renderFeed(); renderRestore();
-}
-function pickDay(offset) {
-  ui.picking = true; ui.picked = new Set(dayPick(offset).map(s => s.key)); ui.view = 'session';
-  renderFeed(); renderMain();
-}
-function exitPick() { ui.picking = false; ui.picked.clear(); renderFeed(); renderMain(); }
 async function action(id, element) {
   const s = sessionMap.get(ui.key);
   switch (id) {
     case 'nav-mine': case 'nav-all': case 'nav-projects':
-      ui.section = id.slice(4); ui.project = null; ui.view = 'list'; ui.picking = false; ui.editing = false;
+      ui.section = id.slice(4); ui.project = null; ui.view = 'list'; ui.editing = false;
       writeHash(); search(); renderMain(); break;
     case 'wait-next': {
       const waits = waiting();
@@ -1122,7 +1245,7 @@ async function action(id, element) {
     }
     case 'project-row': ui.project = element.dataset.project; ui.section = 'mine'; ui.view = 'list'; writeHash(); search(); layout(); break;
     case 'project-filter-clear': ui.project = null; writeHash(); search(); break;
-    case 'row': ui.picking ? togglePick(element.dataset.key) : select(element.dataset.key); break;
+    case 'row': select(element.dataset.key); break;
     case 'related-chip': select(element.dataset.key); break;
     case 'back-to-list': ui.view = 'list'; writeHash(); layout(); renderSmart(); break;
     case 'search-conv': case 'search-more': ui.inConv = !ui.inConv; $(test('search-conv')).setAttribute('aria-pressed',ui.inConv); search(); renderConversation(); break;
@@ -1177,15 +1300,14 @@ async function action(id, element) {
       const scroll = $(test('conversation')).scrollTop; renderConversation(); $(test('conversation')).scrollTop = scroll; break;
     }
     case 'conversation-retry': ui.messages.delete(s.key); renderConversation(); await loadConversation(s.key); break;
-    case 'pick-enter': ui.picking = true; ui.view = 'list'; renderFeed(); renderMain(); break;
-    case 'pick-yesterday': pickDay(-1); break;
-    case 'pick-today': pickDay(0); break;
-    case 'pick-none': ui.picked.clear(); renderFeed(); renderRestore(); break;
-    case 'pick-remove': togglePick(element.dataset.key); break;
-    case 'pick-next': ui.view = 'session'; layout(); break;
-    case 'pick-done': exitPick(); break;
-    case 'fmt-wt': case 'fmt-tmux': case 'fmt-plain': ui.fmt = id.slice(4); renderRestore(); break;
-    case 'copy-script': if (ui.script !== null) await copy(ui.script,element); break;
+    case 'term-open': { const why = terminalBlocker(s); if (why) toast(why); else await openTerminal(s.key); break; }
+    case 'term-resume': await openTerminal(s.key); break;
+    case 'term-show': case 'term-view-term': showPane('term'); break;
+    case 'term-view-card': showPane('card'); break;
+    case 'term-menu': ui.menu = ui.menu === 'term' ? '' : 'term'; renderMenus(); break;
+    case 'term-copy-attach': closeMenu(); await copy(ui.terms[s.key].attach, null, t('term.attach-copied')); break;
+    case 'term-close': case 'term-exit-close': await closeTerminal(s.key); break;
+    case 'term-reconnect': attachTerminal(s.key); break;
     case 'toast-undo': if (undo) await undo(); break;
   }
 }
@@ -1270,17 +1392,24 @@ function bind() {
       if (narrow() && ui.view !== 'list') { ui.view = 'list'; writeHash(); layout(); }
       $('#q').focus();
     }
-    if (event.key === 'Escape') { if (ui.menu) { closeMenu(); return; } if (ui.picking) exitPick(); }
-    if (!event.repeat && event.key.toLowerCase() === 'c' && ((ui.key && !agentShown()) || ui.picking)) safely(ui.picking ? 'copy-script' : 'copy-command',$(test(ui.picking ? 'copy-script' : 'copy-command')));
+    if (event.key === 'Escape' && ui.menu) closeMenu();
+    if (!event.repeat && event.key.toLowerCase() === 'c' && ui.key && !agentShown()) safely('copy-command',$(test('copy-command')));
+    if (!event.repeat && event.key.toLowerCase() === 'o' && ui.key && !agentShown()) {
+      const term = ui.terms[ui.key], id = !term ? 'term-open' : term.state === 'running' ? 'term-show' : 'term-resume';
+      safely(id,$(test(id)));
+    }
   });
-  window.addEventListener('hashchange',() => { readHash(); ui.editing = false; ui.picking = false; search(); renderMain(); });
-  window.addEventListener('popstate',() => { readHash(); ui.editing = false; ui.picking = false; search(); renderMain(); });
+  // Ctrl+W в браузере закрывает окно, страница его не перехватит. Пока ввод в терминале, браузер хотя бы спросит.
+  window.addEventListener('beforeunload',event => { if (tty?.host.contains(document.activeElement)) { event.preventDefault(); event.returnValue = ''; } });
+  window.addEventListener('hashchange',() => { readHash(); ui.editing = false; search(); renderMain(); });
+  window.addEventListener('popstate',() => { readHash(); ui.editing = false; search(); renderMain(); });
 }
 async function init() {
   readHash(); shell(); renderNav(); bind(); renderLoading();
   try {
-    // Агенты, окружение и настройки нужны до первой отрисовки списка: иконки, меню, формат восстановления.
-    const [state, config] = await Promise.all([api('/api/state'), api('/api/config')]);
+    // Агенты, окружение и настройки нужны до первой отрисовки списка: иконки и меню.
+    const [state, config, terms] = await Promise.all([api('/api/state'), api('/api/config'), api('/api/terminals').catch(() => ({}))]);
+    ui.terms = terms;
     // Язык страницы задаёт сервер (настройка language или язык браузера). Если он другой, каркас перерисовывается.
     const before = lang();
     setLanguage(config.language);
@@ -1304,6 +1433,8 @@ async function init() {
     if (!sessionMap.has(ui.key)) ui.key = (ui.sessions.find(s => mine(s) && ui.state.pins.includes(s.key)) || ui.sessions.find(mine) || ui.sessions[0])?.key || '';
     writeHash(true); renderFeed(); renderMain(); resumeJobs(); pollLive();
     setInterval(pollLive,5000);
+    // Терминалы опрашиваются чаще статусов: так быстрее видно, что агент завершился или терминал закрыли в другой вкладке.
+    setInterval(refreshTerminals,2000);
     setInterval(() => {
       for (const [panel, state] of [['smart-progress', ui.smart], ['full-progress', ui.full]]) {
         const elapsed = $(`${test(panel)} .smart-elapsed`);

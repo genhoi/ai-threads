@@ -14,8 +14,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 .search-wrap{padding:12px 12px 6px}
 .search-icon{flex-shrink:0}
 .search .kbd{margin-right:6px}
-.feed-tools{display:flex;align-items:center;gap:8px;padding:2px 8px 8px 12px;border-bottom:1px solid var(--line);font-size:var(--fs-s);flex-wrap:wrap}
-.pick-tools{gap:12px;padding:2px 12px 8px 16px}
+.feed-tools{display:flex;align-items:center;gap:8px;padding:0 8px 6px 16px;border-bottom:1px solid var(--line);font-size:var(--fs-s);flex-wrap:wrap}
+.list-note{font-size:var(--fs-xs);color:var(--text-3)}
 .feed{flex:1;min-height:0;padding-bottom:12px}
 .row-content{min-width:0}
 .row-project{flex-shrink:0;max-width:46%;overflow:hidden;text-overflow:ellipsis}
@@ -91,18 +91,8 @@ h1{margin:0;font-size:var(--fs-title);line-height:1.3;font-weight:600;min-width:
 .loading-progress{font:var(--fs-s) var(--font-mono);color:var(--text-2)}
 .skeletons{padding:8px 16px;display:flex;flex-direction:column;gap:18px}
 .skeletons>div{display:flex;flex-direction:column;gap:7px}
-.restore{flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding:18px var(--sp-6) 20px}
-.restore-heading{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.restore-note{font-size:var(--fs-s);color:var(--text-2)}
-.picked-list{flex-shrink:0;max-height:300px;border:1px solid var(--line);border-radius:var(--radius-l);background:var(--surface)}
-.pick-project{min-width:0;font:var(--fs-xs) var(--font-mono);color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pick-title{min-width:0;font-size:var(--fs-m);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pick-badges{display:flex;gap:6px}
-.script{flex:1;min-width:0;min-height:90px;margin:0;padding:14px 16px;background:var(--cmd-bg);border:1px solid var(--line-strong);border-radius:var(--radius-l);font:12.5px/1.7 var(--font-mono);color:var(--cmd-ink);white-space:pre;}
-.script-note{font-size:var(--fs-xs);color:var(--text-3);line-height:1.5}
-.back,.pick-next{display:none}
+.back{display:none}
 .title-line .pill{margin-top:7px}
-.pick-next.btn-primary{height:30px}
 .command-box{min-width:0}
 .toast{position:fixed;max-width:calc(100% - 56px)}
 .toast>span{overflow-wrap:anywhere;min-width:0}
@@ -115,7 +105,7 @@ h1{margin:0;font-size:var(--fs-title);line-height:1.3;font-weight:600;min-width:
  .workspace.detail .sidebar{display:none}
  .sidebar{border-right:0}
  .addr{display:none}
- .back,.pick-next{display:inline-flex;align-self:flex-start}
+ .back{display:inline-flex;align-self:flex-start}
  .topbar{gap:10px}
  .session-top,.command-area,.ctx,.conversation-heading{flex-shrink:0}
  .session{overflow:auto}
@@ -131,12 +121,7 @@ h1{margin:0;font-size:var(--fs-title);line-height:1.3;font-weight:600;min-width:
  .summary-body{padding-left:12px}
  .segments{width:90px}
  .msg{grid-template-columns:80px minmax(0,1fr);column-gap:10px}
- .pick-row{grid-template-columns:18px minmax(0,1fr) 32px;gap:8px}
- .pick-project{display:none}
- .pick-badges{grid-column:2;grid-row:2;flex-wrap:wrap}
- .pick-row .icon-btn{grid-column:3;grid-row:1}
  .seg-ctl{flex-wrap:wrap;max-width:100%}
- .restore{overflow:auto}
  .title-line h1{font-size:19px}
 }
 
@@ -144,7 +129,6 @@ h1{margin:0;font-size:var(--fs-title);line-height:1.3;font-weight:600;min-width:
 [data-testid="next-step"]>.ellip{font-weight:500}
 
 .row-top>.warn-text{flex-shrink:0;white-space:nowrap}
-@media(min-width:900px){.pick-tools{flex-wrap:nowrap}.pick-tools strong{min-width:0}}
 /* Умный поиск: кнопка в поле поиска, панель хода поиска и заголовок результатов над лентой. */
 /* Поле поиска в две строки: ввод сверху, переключатель переписки и умный поиск под ним. */
 .search-wrap .search{flex-wrap:wrap;height:auto;min-height:34px;padding:4px 4px 6px 10px;row-gap:4px}
@@ -192,6 +176,36 @@ h1{margin:0;font-size:var(--fs-title);line-height:1.3;font-weight:600;min-width:
 .full-bar{height:3px;border-radius:2px;background:var(--line-strong)}
 .full-bar div{height:3px;border-radius:2px;background:var(--accent)}
 .row-sub.full-snippet{display:-webkit-box;white-space:normal;-webkit-line-clamp:3;-webkit-box-orient:vertical;color:var(--text-2);overflow-wrap:anywhere}
+/* Терминал справа: шапка с состоянием агента, xterm и полосы поверх него. */
+.session.has-term{overflow:hidden}
+.tbar{position:relative;flex-shrink:0;display:flex;align-items:center;gap:10px;height:42px;padding:0 8px 0 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+.tbar .back{align-self:center;margin-left:-6px}
+.tb-title{flex:0 1 auto;min-width:0;font-size:var(--fs-m);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-meta{flex-shrink:0;font:var(--fs-xs) var(--font-mono);color:var(--text-3);white-space:nowrap}
+.tb-meta.with-icon{gap:4px}
+.tb-meta svg{width:12px;height:12px}
+.state{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:11px;font-size:var(--fs-xs);white-space:nowrap}
+.state .spin{width:10px;height:10px;border-width:1.5px}
+.state.work{background:var(--ok-bg);color:var(--ok)}
+.state.wait{background:var(--accent-soft);color:var(--accent)}
+.state.start,.state.exit,.state.open{background:var(--surface-2);color:var(--text-2)}
+.state.exit.err{background:var(--danger-bg);color:var(--danger)}
+.tbar .menu{width:320px}
+.menu button.danger{color:var(--danger)}
+.term-pane{position:relative;flex:1;min-height:0;background:var(--bg)}
+.term-host{position:absolute;inset:10px 6px 6px 16px}
+.term-starting{position:absolute;top:12px;left:18px;display:flex;align-items:center;gap:8px;font:13px var(--font-mono);color:var(--text-3);pointer-events:none}
+.t-end{position:absolute;left:16px;right:16px;bottom:12px;z-index:3;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:var(--radius);background:var(--surface-2);color:var(--text-2);font-size:var(--fs-s);line-height:1.45;box-shadow:var(--shadow-pop)}
+.t-end>span{flex:1 1 260px;min-width:0}
+.t-end.err{background:var(--danger-bg);color:var(--danger)}
+.t-end .btn-primary{height:30px;font-size:var(--fs-s)}
+.term-card{flex:1;min-height:0;display:flex;flex-direction:column}
+.term-action{display:contents}
+.btn.is-off{opacity:.5;cursor:default}
+@media(max-width:899px){
+ .tbar .tb-meta{display:none}
+ .term-card{overflow:auto}
+}
 /* «Сессия агента»: журнал умного поиска или сводки на месте переписки. */
 .agent-session .conversation{padding-top:8px}
 .log-msg .speaker .nit-name{color:var(--ok)}

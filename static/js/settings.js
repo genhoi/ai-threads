@@ -27,7 +27,6 @@ const ICON = {
 
 // Умолчания приходят с сервера (`defaults` в /api/config): значения, равные им, в файл не пишутся.
 let DEFAULTS = {summary: {}, digest: {}, search: {}, language: 'auto', temp_dirs: []};
-const KEEP = ['open_with', 'tmux_session'];  // настроек нет на экране: переносятся из файла как есть
 // Разделы: названия и описания — в словаре по ключам section.<key> и section.<key>.desc.
 const SECTIONS = ['agents', 'summaries', 'list', 'about'].map(key => ({key, title: () => t(`section.${key}`), desc: () => t(`section.${key}.desc`)}));
 // Кто отвечает и сколько ждать: настройки summary, digest и search, агенты — из /api/digest/models.
@@ -92,10 +91,9 @@ function formOf(config) {
   const blocks = Object.fromEntries(BLOCKS.map(b => [b.kind, {...DEFAULTS[b.kind], ...s[b.kind]}]));
   return {agents, ...blocks, language: s.language, temp_dirs: [...s.temp_dirs]};
 }
-// Файл настроек целиком: то, что в нём было, с правками формы и без значений по умолчанию.
+// Файл настроек целиком: значения формы без значений по умолчанию.
 function settingsOf(form) {
-  const stored = ui.config.stored || {}, out = {}, agents = {};
-  for (const key of KEEP) if (key in stored) out[key] = stored[key];
+  const out = {}, agents = {};
   for (const a of ui.config.agents) {
     const own = form.agents[a.id], values = {};
     if (!own.enabled) values.enabled = false;

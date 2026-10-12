@@ -3,6 +3,7 @@
 import importlib
 import json
 import mimetypes
+import socket
 import threading
 import time
 from datetime import date
@@ -28,17 +29,17 @@ i18n.add({
     "server.not_connected": {"ru": "Модуль ещё не подключён", "en": "This module is not connected yet"},
     "server.failed": {"ru": "Не удалось выполнить запрос", "en": "The request failed"},
     "server.no_session": {"ru": "Сессия не найдена", "en": "Session not found"},
-    "server.need_keys": {"ru": "Нужен список ключей сессий", "en": "A list of session keys is required"},
     "server.no_job": {"ru": "Задание не найдено", "en": "Job not found"},
     "server.bad_scope": {"ru": "Неверная область поиска", "en": "Invalid search scope"},
     "server.bad_since": {"ru": "Неверный номер события", "en": "Invalid event number"},
-    "server.bad_format": {"ru": "Неверный формат скрипта", "en": "Invalid script format"},
     "server.no_route": {"ru": "Маршрут не найден", "en": "Route not found"},
     "server.need_field": {"ru": "Нужно поле {field}", "en": "Field {field} is required"},
     "server.bad_model": {"ru": "Неверная модель", "en": "Invalid model"},
     "server.bad_query": {"ru": "Нужен запрос до 500 символов", "en": "The query must be 1 to 500 characters"},
     "server.bad_app": {"ru": "Неверное приложение", "en": "Invalid app"},
     "server.no_file": {"ru": "Файл не найден", "en": "File not found"},
+    "server.need_websocket": {"ru": "Нужен запрос на соединение WebSocket", "en": "A WebSocket upgrade request is required"},
+    "server.no_terminal": {"ru": "Терминал этой сессии закрыт", "en": "This session's terminal is closed"},
 })
 
 
@@ -153,6 +154,8 @@ class Handler(BaseHTTPRequestHandler):
             query = parse_qs(parsed.query, keep_blank_values=True)
             if self.command == "POST":
                 self._post(path, self._body(path))
+            elif path == "/api/terminal/socket":
+                self._terminal_socket(query)
             else:
                 self._get(path, query)
         except (BrokenPipeError, ConnectionResetError):
@@ -176,11 +179,6 @@ class Handler(BaseHTTPRequestHandler):
             raise HTTPError(404, i18n.t("server.no_session"))
         return session
 
-    def _selected(self, keys):
-        if not isinstance(keys, list) or not keys:
-            raise ValueError(i18n.t("server.need_keys"))
-        return [self._session(key) for key in dict.fromkeys(validate_key(k) for k in keys)]
-
     def _job(self, job_id):
         job = self.server.jobs.get(job_id)
         if job is None:
@@ -200,9 +198,6 @@ class Handler(BaseHTTPRequestHandler):
             self._send(store.export(), headers=headers)
         elif path == "/api/session":
             self._send(sources.transcript(self._session(arg("key"))))
-        elif path == "/api/resolve":
-            session = self._session(arg("key"))
-            self._send({name: getattr(session, name) for name in ("cwd", "command", "command_no_cd", "tool", "project")})
         elif path == "/api/search":
             scope = arg("scope", "mine")
             if scope not in ("mine", "all"):
@@ -220,12 +215,8 @@ class Handler(BaseHTTPRequestHandler):
             self._events(self._job(path[len("/api/jobs/"):-len("/events")]), since)
         elif path == "/api/live":
             self._send(_module("live").live_status({s.key: s for s in catalog.sessions()}))
-        elif path == "/api/restore-script":
-            fmt = arg("fmt", "plain")
-            if fmt not in ("wt", "tmux", "plain"):
-                raise ValueError(i18n.t("server.bad_format"))
-            sessions = self._selected(arg("keys").split(","))
-            self._send(_module("terminal").restore_script(sessions, fmt, self.server.server_port), content_type="text/plain; charset=utf-8")
+        elif path == "/api/terminals":
+            self._send(_module("tmux").terminals())
         elif path == "/api/config":
             if arg("refresh") == "1":
                 # «Проверить снова»: перечитать журналы, чтобы число сессий было свежим.
@@ -363,6 +354,18 @@ class Handler(BaseHTTPRequestHandler):
             catalog.refresh(force=True)
             catalog.wait(10)
             self._send(self._config())
+        elif path == "/api/terminal/open":
+            session = self._session(body.get("key"))
+            tmux = _module("tmux")
+            try:
+                terminal = tmux.open_terminal(session, tmux.clamp(body.get("cols"), 20, 500, 120),
+                                              tmux.clamp(body.get("rows"), 5, 200, 32))
+            except tmux.TerminalError as error:
+                raise HTTPError(409, str(error)) from None
+            self._send(terminal)
+        elif path == "/api/terminal/close":
+            _module("tmux").close_terminal(validate_key(body.get("key")))
+            self._send({"ok": True})
         elif path == "/api/reveal":
             session = self._session(body.get("key"))
             app = body.get("app")
@@ -396,6 +399,67 @@ class Handler(BaseHTTPRequestHandler):
                 "data_dir": str(config.data_dir()), "port": self.server.server_port, "version": __version__,
                 "language": i18n.current()}
 
+    def _terminal_socket(self, query):
+        """WebSocket к терминалу сессии. Вывод tmux и ввод человека — двоичные сообщения, новый размер
+        окна — текстовое {"type": "resize", "cols", "rows"}. Агент не зависит от соединения: при обрыве
+        отключается только клиент tmux."""
+        tmux, ws = _module("tmux"), _module("websocket")
+        # Браузер присылает Origin и в запросе WebSocket. Без проверки чужой сайт мог бы печатать в терминал.
+        if self.headers.get_all("Origin", []) != [f"http://{self.headers.get('Host')}"]:
+            raise HTTPError(403, i18n.t("server.bad_origin"))
+        token = self.headers.get("Sec-WebSocket-Key", "")
+        if (self.headers.get("Upgrade", "").lower() != "websocket"
+                or "upgrade" not in self.headers.get("Connection", "").lower()
+                or self.headers.get("Sec-WebSocket-Version") != "13" or not ws.valid_key(token)):
+            raise HTTPError(400, i18n.t("server.need_websocket"))
+        arg = lambda name: query.get(name, [""])[0]
+        key = validate_key(arg("key"))
+        if key not in tmux.terminals():
+            raise HTTPError(404, i18n.t("server.no_terminal"))
+        attachment = tmux.Attachment(key, tmux.clamp(arg("cols"), 20, 500, 120), tmux.clamp(arg("rows"), 5, 200, 32))
+        self.close_connection = True
+        self.send_response(101)
+        self.send_header("Upgrade", "websocket")
+        self.send_header("Connection", "Upgrade")
+        self.send_header("Sec-WebSocket-Accept", ws.accept_key(token))
+        self.end_headers()
+        connection = ws.Connection(self.rfile, self.wfile)
+        sock = self.connection
+
+        def pump():
+            try:
+                while data := attachment.read():
+                    if not connection.send(ws.BINARY, data):
+                        return
+            except OSError:
+                return
+            # Клиент tmux завершился, значит терминал закрыли. Ответ на кадр закрытия ждём недолго.
+            connection.close()
+            timer = threading.Timer(3, _shutdown_read, [sock])
+            timer.daemon = True
+            timer.start()
+
+        threading.Thread(target=pump, daemon=True).start()
+        try:
+            while (message := connection.receive()) is not None:
+                kind, data = message
+                if kind == ws.BINARY:
+                    attachment.write(data)
+                    continue
+                try:
+                    command = json.loads(data)
+                except ValueError:
+                    continue
+                if isinstance(command, dict) and command.get("type") == "resize":
+                    attachment.resize(tmux.clamp(command.get("cols"), 20, 500, 120), tmux.clamp(command.get("rows"), 5, 200, 32))
+        except ws.ProtocolError as error:
+            connection.close(error.code)
+        except (EOFError, OSError):
+            pass
+        finally:
+            attachment.close()
+            connection.close()
+
     def _events(self, job, since):
         self.send_response(200)
         self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
@@ -426,6 +490,13 @@ class Handler(BaseHTTPRequestHandler):
         if mime.startswith("text/") or mime in ("application/javascript", "application/json"):
             mime += "; charset=utf-8"
         self._send(content, content_type=mime, headers={"Cache-Control": "no-cache"})
+
+
+def _shutdown_read(sock):
+    try:
+        sock.shutdown(socket.SHUT_RD)
+    except OSError:
+        pass
 
 
 def create_server(port=8765, **kwargs) -> Server:

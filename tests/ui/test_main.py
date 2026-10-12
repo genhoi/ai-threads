@@ -2,7 +2,6 @@
 
 import json
 import re
-import shutil
 import time
 from pathlib import Path
 from urllib.parse import quote
@@ -191,58 +190,12 @@ def test_narrow_navigation_and_long_conversation(page, ui_server):
     expect(page.get_by_test_id('session')).to_be_hidden()
 
 
-def test_restore_script_formats_without_open(page, ui_server):
-    calls = posts(page)
-    open_main(page, ui_server)
-    page.get_by_test_id('pick-enter').click()
-    expect(page.get_by_test_id('restore')).to_be_visible()
-    page.locator(f'[data-testid="row"][data-key="{KEY}"]').click()
-    expect(page.get_by_test_id('pick-count')).to_have_text('Выбрано 1')
-    expect(page.get_by_test_id('fmt-wt')).to_have_attribute('aria-pressed', 'true')
-    expect(page.get_by_test_id('script')).to_contain_text('wt.exe -w 0')
-    expect(page.get_by_test_id('open-all')).to_have_count(0)
-    page.keyboard.press('o')
-    page.get_by_test_id('copy-script').click()
-    assert KEY in page.evaluate('window.copiedText')
-    page.get_by_test_id('fmt-tmux').click()
-    expect(page.get_by_test_id('script')).to_contain_text('tmux attach -t nit')
-    page.get_by_test_id('fmt-plain').click()
-    expect(page.get_by_test_id('script')).to_contain_text('codex resume')
-    page.get_by_test_id('copy-script').click()
-    assert page.evaluate('window.copiedText').startswith('codex resume')
-    assert not calls
-    page.keyboard.press('Escape')
-    expect(page.get_by_test_id('restore')).to_have_count(0)
-
-
-def test_restore_format_from_settings(page, ui_server, save_settings):
-    save_settings({'open_with': 'tmux', 'tmux_session': 'work'})
-    open_main(page, ui_server)
-    page.get_by_test_id('pick-enter').click()
-    page.locator(f'[data-testid="row"][data-key="{KEY}"]').click()
-    expect(page.get_by_test_id('fmt-tmux')).to_have_attribute('aria-pressed', 'true')
-    expect(page.get_by_test_id('script')).to_contain_text('tmux attach -t work')
-    expect(page.locator('.script-note')).to_contain_text('tmux-сессии work')
-
-
-def test_outside_wsl_hides_windows_terminal_and_explorer(page, no_wsl):
+def test_outside_wsl_hides_explorer(page, no_wsl):
     open_main(page, no_wsl)
     page.get_by_test_id('session-menu').click()
     expect(page.get_by_test_id('menu-copy-id')).to_be_visible()
     expect(page.get_by_test_id('menu-explorer')).to_have_count(0)
     expect(page.get_by_test_id('menu-vscode')).to_be_visible()
-    page.keyboard.press('Escape')
-    page.get_by_test_id('pick-enter').click()
-    page.locator(f'[data-testid="row"][data-key="{KEY}"]').click()
-    expect(page.get_by_test_id('fmt-tmux')).to_be_visible()
-    expect(page.get_by_test_id('fmt-wt')).to_have_count(0)
-    expected = 'tmux' if shutil.which('tmux') else 'plain'
-    expect(page.get_by_test_id(f'fmt-{expected}')).to_have_attribute('aria-pressed', 'true')
-    page.get_by_test_id('fmt-tmux').click()
-    expect(page.locator('.script-note')).to_have_text('Сессии откроются окнами в tmux-сессии nit.')
-    page.get_by_test_id('fmt-plain').click()
-    expect(page.locator('.script-note')).to_have_text('Вставляйте по одной в отдельные вкладки терминала.')
-    expect(page.get_by_test_id('script')).to_contain_text('codex resume')
 
 
 def test_command_highlights_id_before_flags(page, ui_server, save_settings):
@@ -279,15 +232,6 @@ def test_session_without_command_shows_hint(page, ui_server):
     page.get_by_test_id('session-menu').click()
     page.get_by_test_id('menu-copy-id').click()
     assert page.evaluate('window.copiedText') == KEY.split(':', 1)[1]
-    page.get_by_test_id('pick-enter').click()
-    page.locator(f'[data-testid="row"][data-key="{KEY}"]').click()
-    expect(page.locator(f'[data-testid="picked-row"][data-key="{KEY}"]')).to_contain_text('нельзя продолжить из терминала')
-    expect(page.get_by_test_id('script')).to_have_text('# Выбранные сессии нельзя продолжить из терминала.')
-    expect(page.get_by_test_id('copy-script')).to_be_disabled()
-    page.locator(f'[data-testid="row"][data-key="{CLAUDE}"]').click()
-    expect(page.locator('[data-testid="restore"] .restore-heading .restore-note')).to_have_text('2 выбрано · 1 нельзя продолжить из терминала')
-    expect(page.get_by_test_id('script')).to_contain_text(CLAUDE)
-    expect(page.get_by_test_id('script')).not_to_contain_text(KEY)
     assert not calls
 
 
@@ -484,14 +428,12 @@ def test_large_feed_chunking_and_calendar_boundaries(page, ui_server):
     page.route('**/api/session?*', lambda route: route.fulfill(json={'messages': [], 'truncated': False}))
     page.goto(ui_server.url)
     expect(page.get_by_test_id('row')).to_have_count(50)
-    expect(page.get_by_test_id('pick-yesterday')).to_contain_text('994')
     page.locator('#feed').evaluate('el => el.scrollTop = el.scrollHeight')
     expect(page.get_by_test_id('row')).to_have_count(100)
     page.get_by_test_id('search').fill('Сессия 999')
     expect(page.get_by_test_id('row')).to_have_count(1)
     page.get_by_test_id('search').fill('')
-    page.get_by_test_id('pick-yesterday').click()
-    expect(page.get_by_test_id('pick-count')).to_have_text('Выбрано 994')
+    expect(page.get_by_test_id('row')).to_have_count(50)
 
 
 def test_clipboard_fallback_and_missing_folder(page, ui_server):
@@ -566,16 +508,7 @@ def test_reference_screens(page, ui_server):
     page.get_by_test_id('search').fill('абракадабра')
     shot('Main-noresults')
     page.get_by_test_id('search').press('Escape')
-    page.get_by_test_id('pick-enter').click()
-    page.locator(f'[data-testid="row"][data-key="{KEY}"]').click()
-    page.locator(f'[data-testid="row"][data-key="{CLAUDE}"]').click()
-    expect(page.get_by_test_id('script')).to_contain_text('wt.exe')
     assert page.locator('#feed').evaluate('el => el.scrollWidth <= el.clientWidth')
-    shot('Main-restore')
-    page.get_by_test_id('fmt-tmux').click()
-    expect(page.get_by_test_id('script')).to_contain_text('tmux attach')
-    shot('Main-restore-tmux')
-    page.keyboard.press('Escape')
     page.locator(f'[data-testid="row"][data-key="{CLAUDE}"]').click()
     expect(page.get_by_test_id('message').last).to_be_visible()
     shot('Main-nosummary')
@@ -622,16 +555,3 @@ def test_import_summary_after_model_result_uses_saved_state(page, ui_server):
     assert ui_server.store.state()['summaries'][KEY]['summary'] == imported['summary']
     page.reload()
     expect(page.get_by_test_id('summary-text')).to_have_text(imported['summary'])
-
-
-def test_clearing_restore_selection_does_not_copy_old_script(page, ui_server):
-    open_main(page, ui_server)
-    page.get_by_test_id('pick-enter').click()
-    page.locator(f'[data-testid="row"][data-key="{KEY}"]').click()
-    expect(page.get_by_test_id('copy-script')).to_be_enabled()
-    page.get_by_test_id('copy-script').click()
-    assert KEY in page.evaluate('window.copiedText')
-    page.get_by_test_id('pick-none').click()
-    page.evaluate('window.copiedText = "Буфер не менялся"')
-    page.keyboard.press('c')
-    assert page.evaluate('window.copiedText') == 'Буфер не менялся'

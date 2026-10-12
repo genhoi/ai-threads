@@ -1,4 +1,4 @@
-"""Язык сообщений: выбор языка, английские ответы API, события заданий, терминал, словарь."""
+"""Язык сообщений: выбор языка, английские ответы API, события заданий, проводник, словарь."""
 
 from __future__ import annotations
 
@@ -10,13 +10,11 @@ import inspect
 import json
 import os
 import pkgutil
-import shlex
 import string
 import subprocess
 import sys
 import threading
 import time
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
@@ -38,7 +36,6 @@ from .a_support import homes
 from .conftest import all_events, wait_finished
 
 ROOT = Path(__file__).resolve().parents[1]
-RESUME = ROOT / "bin" / "nit-resume"
 
 
 def write_settings(values):
@@ -92,7 +89,7 @@ def test_setting_beats_header_and_environment():
     # Файлы разной длины: настройки перечитываются по размеру и времени изменения файла.
     write_settings({"language": "ru"})
     assert i18n.resolve("en-US,en", request=True) == "ru"
-    write_settings({"language": "en", "open_with": "auto"})
+    write_settings({"language": "en", "temp_dirs": ["/tmp"]})
     assert i18n.resolve("ru-RU", request=True) == "en"
     assert i18n.resolve() == "en"
     write_settings({"language": "auto"})
@@ -147,7 +144,7 @@ def call(server, path, body=None, language=None):
     return result
 
 
-BAD_KEY = "/api/resolve?key=../../etc/passwd"
+BAD_KEY = "/api/session?key=../../etc/passwd"
 
 
 @pytest.mark.parametrize("language,lang,error", [
@@ -178,11 +175,11 @@ def test_api_errors_in_english(server):
 
 def test_settings_error_is_shown_in_the_reader_language(server):
     # Причина в файле настроек сохраняется при чтении, а текст собирается при показе.
-    write_settings({"open_with": "nope"})
+    write_settings({"language": "de"})
     english = call(server, "/api/config", language="en")[1]["settings_error"]
     russian = call(server, "/api/config", language="ru")[1]["settings_error"]
-    assert english.endswith("open_with: one of auto, wt, tmux, plain")
-    assert russian.endswith("open_with: одно из auto, wt, tmux, plain")
+    assert english.endswith("language: one of auto, ru, en")
+    assert russian.endswith("language: одно из auto, ru, en")
 
 
 def test_digest_models_hints_in_english(server, stub_path):
@@ -303,66 +300,12 @@ def test_unexpected_job_error_in_english():
     assert [e["message"] for e in events if e["type"] == "error"] == ["Unexpected job error: boom"]
 
 
-# --- скрипт восстановления и терминал ------------------------------------
+# --- проводник и командная строка ---------------------------------------
 
-def test_restore_script_notes_in_english(tmp_path):
+def test_reveal_message_in_english(tmp_path):
     gone = Session(tool="grok", id="g1", title="t", cwd=str(tmp_path / "gone"), updated=0)
-    tmux = in_language("en", terminal.restore_script, [gone], "tmux", 8793)
-    assert shlex.split(tmux.splitlines()[1])[-1] == "echo 'no folder · no cd'; grok --resume g1"
-    assert in_language("en", terminal.restore_script, [], "plain", 8793) == (
-        "# all selected sessions are already open or can't be resumed from the terminal")
     with pytest.raises(FileNotFoundError, match="The project folder no longer exists"):
         in_language("en", terminal.reveal, gone, "vscode")
-
-
-def resume_env(home, lang):
-    env = os.environ.copy()
-    env.update(HOME=str(home), LANG=lang)
-    for name in ("LC_ALL", "LC_MESSAGES", "BASH_ENV"):
-        env.pop(name, None)
-    return env
-
-
-def run_resume(args, home, lang):
-    completed = subprocess.run([str(RESUME), *args], stdin=subprocess.DEVNULL, capture_output=True,
-                               text=True, env=resume_env(home, lang), timeout=30, start_new_session=True)
-    return completed.stderr
-
-
-@pytest.mark.parametrize("lang,usage", [
-    ("en_US.UTF-8", "Usage: nit-resume --port PORT KEY"),
-    ("C.UTF-8", "Usage: nit-resume --port PORT KEY"),
-    ("ru_RU.UTF-8", "Использование: nit-resume --port ПОРТ КЛЮЧ"),
-])
-def test_resume_usage_follows_environment(tmp_path, lang, usage):
-    assert usage in run_resume([], tmp_path, lang)
-
-
-def test_resume_missing_folder_in_english(tmp_path):
-    gone = tmp_path / "gone"
-
-    class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            payload = json.dumps({"cwd": str(gone), "command_no_cd": "true"}).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(payload)))
-            self.end_headers()
-            self.wfile.write(payload)
-
-        def log_message(self, fmt, *args):
-            return
-
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        err = run_resume(["--port", str(server.server_address[1]), "grok:g1"], tmp_path, "en_US.UTF-8")
-    finally:
-        server.shutdown()
-        server.server_close()
-    assert f"The project folder no longer exists: {gone}" in err
-    assert in_language("en", i18n.t, "terminal.missing_note") in err.splitlines()
 
 
 @pytest.mark.parametrize("lang,message", [("en_US.UTF-8", "the port must be from 1 to 65535"),

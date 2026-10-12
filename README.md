@@ -39,9 +39,12 @@ the `language` [setting](#settings) fixes it.
   up without changing Nit's settings.
 - A ready command to resume a session, such as `cd -- <folder> && codex resume <id>`. A checkbox in
   the settings adds the agent's flag for running without approval prompts.
-- A script that restores several sessions at once: Windows Terminal tabs (in WSL), tmux windows or
-  a plain list of commands. Windows Terminal tabs get the folder and the command from Nit, so Nit must
-  be running when you run the script.
+- A terminal on the right. "Open in terminal" (or the O key) resumes the session in the agent's CLI,
+  and you work with the agent right on the page. The agent runs in tmux, so it keeps working when you
+  close the page or restart Nit, and opening the session again brings back the same terminal.
+  "Session" next to "Terminal" shows the summary and the conversation. The menu copies a command that
+  connects any other terminal to the same agent. When the agent exits, Nit shows the exit code and
+  a button to resume the session.
 - Status of running sessions. For Claude Code, Nit shows whether the agent is working or waiting for
   your reply, and the header counts the sessions waiting for you. For Grok, it shows only that the
   session is running. Other agents do not report their status.
@@ -60,7 +63,8 @@ the `language` [setting](#settings) fixes it.
 ## Getting started
 
 You need Python 3.10 or newer. The app has no third-party dependencies. Summaries and smart search
-also need one of these CLIs: Kimi, Claude Code, Codex or Grok.
+also need one of these CLIs: Kimi, Claude Code, Codex or Grok. The terminal needs tmux
+(`sudo apt install tmux`).
 
 ```bash
 git clone https://github.com/genhoi/ai-threads.git
@@ -72,6 +76,29 @@ Open http://127.0.0.1:8765 in your browser. On the first start Nit reads all log
 in as it goes.
 
 Tested on Linux and WSL 2. On Windows, run it inside WSL.
+
+Chrome and Edge can open Nit in a window of its own, without tabs and the address bar: install the page
+as an app from the browser menu.
+
+## Terminal
+
+The agent starts the same way as in a regular terminal tab: through your shell (`$SHELL -ic`), so it
+gets `PATH` and aliases from `~/.bashrc`. The folder is the session's folder, the command is the one
+Nit shows above the conversation.
+
+- The mouse wheel scrolls back through the output. Drag with the mouse to select text: it is copied
+  when you release the button. With Shift held, the selection stays on screen and Ctrl+C copies it.
+- Ctrl+V pastes. Ctrl+C without a selection goes to the agent, as in any terminal.
+- The browser keeps some keys for itself: Ctrl+W closes the window, Ctrl+T and Ctrl+N open new ones.
+  If the terminal has focus, the browser asks before closing the page. The agent keeps running anyway.
+- Nit will not start a second agent on a session that is already running in another terminal, if the
+  agent reports it: Claude Code and Grok do.
+- "Close terminal" in the menu stops the agent. To connect from another terminal, copy the command
+  from the same menu: it looks like `tmux -L ai-threads attach-session -t =nit-claude-<id>`.
+
+Nit's tmux has its own socket, `ai-threads`, and does not read `~/.tmux.conf`, so your own tmux
+sessions and settings stay as they are. After a reboot, open the session and press "Open in terminal"
+again: the agent resumes from its log.
 
 ## Supported agents
 
@@ -93,7 +120,7 @@ agents can write the summaries.
 
 Nit only reads the agents' files. One exception: when Nit reads the ZCode and Cursor Agent SQLite
 databases in WAL mode, SQLite itself may update the `-shm` file next to the database. The data is not
-changed.
+changed. An agent you open in the terminal writes its own log, as it does in any other terminal.
 
 ## Settings
 
@@ -121,16 +148,13 @@ In the field names, `<id>` is the agent ID from the table above.
 | `agents.<id>.home` | see the agents table | session folder; the environment variable wins |
 | `agents.<id>.program` | found in `PATH` | path to the agent's program |
 | `agents.<id>.skip_approvals` | `false` | add the agent's flag for running without approval prompts to the resume command (see the agents table) |
-| `open_with` | `auto` | default format of the restore script: `wt`, `tmux` or `plain`. `auto` means Windows Terminal in WSL, otherwise tmux if it is installed, otherwise a plain list |
-| `tmux_session` | `nit` | tmux session name in the restore script |
 | `summary.agent`, `digest.agent` | `auto` | who writes session summaries and multi-day digests: `kimi`, `claude`, `codex`, `grok`. `auto` picks the first installed one in this order |
 | `search.agent` | `auto` | who parses smart search requests and picks sessions; same values |
 | `summary.timeout`, `digest.timeout`, `search.timeout` | `300`, `900`, `300` | how many seconds to wait for the agent, from 10 to 7200 |
 | `language` | `auto` | interface and summary language: `ru` or `en`. `auto` follows the browser and falls back to English |
 | `temp_dirs` | `["/tmp", "/var/tmp", "~/.local"]` | sessions started in these folders or inside them count as temporary and are not shown in Mine |
 
-`open_with` and `tmux_session` are not on the settings screen, only in the file. Environment variables
-win over the file: the folder variables from the agents table, and `AI_THREADS_SUMMARY_TIMEOUT`,
+Environment variables win over the file: the folder variables from the agents table, and `AI_THREADS_SUMMARY_TIMEOUT`,
 `AI_THREADS_DIGEST_TIMEOUT` and `AI_THREADS_SEARCH_TIMEOUT` for timeouts in seconds.
 
 Nit re-reads the file when it changes, no restart needed. If the file has an error, such as broken
@@ -172,6 +196,11 @@ The server listens on `127.0.0.1` only and has no password: any user or program 
 open it. Requests with a foreign `Host` header are rejected. Requests that change data are accepted
 only with Nit's own `Origin` header, so a third-party website open in your browser cannot send them.
 The browser only passes a session key; the server finds the log path itself.
+
+The terminal connects over WebSocket and accepts only the same `Origin`. Keep in mind what the
+terminal adds: whoever can reach the server can type into your agent's terminal, which means running
+commands as you. On a computer with other users, do not run Nit, or run it without tmux, so the
+terminal stays off.
 
 ## Development
 

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -61,6 +64,24 @@ def stub_path(monkeypatch) -> Path:
     """PATH, где tests/stubs стоит впереди настоящих CLI."""
     monkeypatch.setenv("PATH", f"{STUBS}{os.pathsep}{os.environ.get('PATH', '')}")
     return STUBS
+
+
+@pytest.fixture
+def tmux_server(monkeypatch):
+    """Свой сервер tmux на время теста. Агент в терминале запускается через /bin/sh, а не через
+    оболочку и ~/.bashrc человека. Без tmux тест пропускается."""
+    program = shutil.which("tmux")
+    if not program:
+        pytest.skip("tmux не установлен")
+    # Путь к сокету ограничен 108 символами, поэтому папка — прямо в /tmp.
+    folder = tempfile.mkdtemp(prefix="nit-tmux-", dir="/tmp")
+    socket = os.path.join(folder, "s")
+    monkeypatch.setenv("AI_THREADS_TMUX_SOCKET", socket)
+    monkeypatch.setenv("SHELL", "/bin/sh")
+    yield socket
+    # Путь найден заранее: тест мог убрать tmux из PATH, а monkeypatch вернёт PATH позже.
+    subprocess.run([program, "-S", socket, "kill-server"], capture_output=True)
+    shutil.rmtree(folder, ignore_errors=True)
 
 
 @pytest.fixture
