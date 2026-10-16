@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { errorText } from '../api/client';
-import type { Digest, DigestDays, JobView } from '../api/types';
-import { Button, Chip, Icon, IconButton, Menu, Segmented, toast } from '../components';
+import type { Digest, DigestDays, DigestItem, JobView } from '../api/types';
+import { AgentBadge, Button, Chip, Icon, IconButton, Menu, Segmented, toast } from '../components';
 import type { AgentId } from '../model';
 import { toggleSidebar } from '../app/actions';
+import { titleOf } from '../app/derive';
 import { digestJob, dismissJob, loadDigest, shownJob, startDigest } from '../app/jobs';
 import { replaceRoute } from '../app/route';
 import { agentName, runnerMenu } from '../app/runners';
-import { sessionHash, useApp } from '../app/state';
+import { sessionHash, sessionOf, useApp } from '../app/state';
 import { Markup } from '../lib/markup';
 import { plural } from '../lib/format';
+import { shallow } from '../lib/store';
 import { AgoLong, JobFailure, JobProgress } from './JobStatus';
 
 const PERIODS = [
@@ -227,6 +229,7 @@ function Article({ d }: { d: Digest }) {
               {p.items.map((it, j) => (
                 <li key={j}>
                   <Markup text={it.text} href={sessionHash} />
+                  <ItemSessions item={it} />
                 </li>
               ))}
             </ul>
@@ -239,5 +242,23 @@ function Article({ d }: { d: Digest }) {
         </section>
       ))}
     </article>
+  );
+}
+
+/** Сессии пункта, на которые не ссылается сам текст: значок агента и название ведут на экран сессии */
+function ItemSessions({ item }: { item: DigestItem }) {
+  const sessions = useApp((s) => item.keys.filter((k) => !item.text.includes(`](${k})`)).map((k) => sessionOf(s, k)), shallow);
+  return (
+    <>
+      {sessions.map(
+        (s) =>
+          s && (
+            <a key={s.key} class="dg__ref" href={sessionHash(s.key)} title={titleOf(s)}>
+              <AgentBadge agent={s.agent} size={16} decorative />
+              <span class="dg__ref-name">{titleOf(s)}</span>
+            </a>
+          ),
+      )}
+    </>
   );
 }

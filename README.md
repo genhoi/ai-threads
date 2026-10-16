@@ -29,7 +29,8 @@ The interface is in Russian for now.
   that finds nothing, you can look for an exact match in all logs. History groups sessions by day and
   filters them by project and agent.
 - **Summaries.** For one session, and for the last 3, 5 or 7 days across all projects. One of the
-  installed agents writes the summary: Nit runs it without the UI and hands it the logs.
+  installed agents writes the summary: Nit runs it without the UI and hands it the logs. Each item
+  of a multi-day summary links to the sessions it is about.
 - **Finishing a task.** "Finish" stops the agent, closes the terminal and deletes the copy with its
   branch. The copy stays if it has uncommitted files, the branch was never pushed, or another agent
   works in it. Nit says which one it was.
