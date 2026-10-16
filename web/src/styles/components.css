@@ -1,0 +1,21 @@
+/* Стили компонентов одним файлом: попадают в app.css целиком, даже если сам компонент
+   грузится отдельным куском. Новый компонент — добавить сюда. */
+@import '../components/Icon.css';
+@import '../components/Kbd.css';
+@import '../components/Tooltip.css';
+@import '../components/Button.css';
+@import '../components/Input.css';
+@import '../components/Segmented.css';
+@import '../components/Chip.css';
+@import '../components/AgentBadge.css';
+@import '../components/StatusMark.css';
+@import '../components/StatePill.css';
+@import '../components/Badges.css';
+@import '../components/Menu.css';
+@import '../components/Dialog.css';
+@import '../components/Toast.css';
+@import '../components/SessionRow.css';
+@import '../components/ProjectRow.css';
+@import '../components/Toggles.css';
+@import '@xterm/xterm/css/xterm.css';
+@import '../components/Terminal.css';

@@ -1,0 +1,110 @@
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--overlay);
+  animation: nit-fade-in var(--overlay-in) var(--out);
+}
+
+.dialog-overlay--top {
+  align-items: flex-start;
+}
+
+.dialog-overlay.is-closing {
+  pointer-events: none;
+  animation: nit-exit var(--fast) var(--in) forwards;
+}
+
+/* Для галереи: затемнённая область в потоке страницы */
+.dialog-overlay.is-inline {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  border-radius: var(--r-dialog);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  animation: none;
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow: auto;
+  padding: 32px;
+  border-radius: var(--r-dialog);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-dialog), inset 0 0 0 1px var(--border);
+  color: var(--text);
+  font: var(--t-body-regular);
+  outline: none;
+  --enter-from: scale(0.98);
+  animation: nit-enter var(--base) var(--out);
+}
+
+.dialog-overlay.is-inline .dialog {
+  animation: none;
+}
+
+.dialog--bare {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.dialog__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dialog__title {
+  font: var(--t-dialog);
+  letter-spacing: var(--ls-title);
+}
+
+.dialog__subtitle {
+  font: var(--t-secondary);
+  color: var(--text-2);
+}
+
+.dialog__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+/* Что произойдёт: галочка или предупреждение и текст */
+.dialog-point {
+  display: flex;
+  gap: 10px;
+}
+
+.dialog-point__icon.icon {
+  line-height: 20px;
+}
+
+.dialog-point--ok .dialog-point__icon {
+  color: var(--working);
+}
+
+.dialog-point--warn .dialog-point__icon {
+  color: var(--waiting);
+}
+
+.dialog-point__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dialog-point__detail {
+  font: var(--t-secondary);
+  color: var(--text-2);
+}

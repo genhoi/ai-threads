@@ -1,0 +1,132 @@
+/* Токены из листа «Основы» (design/v2/…/Foundations.dc.html). Значения не округлять. */
+:root {
+  /* Поверхности */
+  --surface-0: #13110e; /* фон приложения, панель, шапка */
+  --surface-1: #1c1915; /* терминал, карточки, окно запуска, наведение на строку */
+  --surface-2: #26221d; /* поля, чипы, меню, выбранная строка */
+  --surface-3: #312c26; /* нажатие, активная вкладка, пункт меню под курсором, подсказка */
+  --surface-1-hover: #221f1a; /* наведение на строку внутри карточки (настройки агентов) */
+  --surface-disabled: #2b2721; /* недоступная основная кнопка, подложка иконки агента */
+  --canvas: #0c0b09; /* фон за экранами в макетах */
+
+  --separator: #2a2620;
+  --border: #3a342c;
+  --border-hover: #4a4238;
+  --overlay: rgba(10, 8, 6, 0.66);
+
+  /* Текст */
+  --text: #f2ede5;
+  --text-2: #bdb4a7; /* вторичный */
+  --text-3: #9c9387; /* подпись */
+  --text-disabled: #6f685e;
+
+  /* Акцент */
+  --accent: #f0b04a;
+  --accent-hover: #f5c470;
+  --accent-active: #dda03e;
+  --accent-ink: #1d1405;
+  --accent-ink-dim: rgba(29, 20, 5, 0.66); /* подсказка клавиш на основной кнопке */
+  --accent-soft: rgba(240, 176, 74, 0.14);
+  --accent-line: rgba(240, 176, 74, 0.45); /* граница окна запуска и включённого фильтра */
+  --accent-line-strong: rgba(240, 176, 74, 0.5); /* граница открытого чипа */
+  --accent-glow: rgba(240, 176, 74, 0.08);
+  --accent-mark: rgba(240, 176, 74, 0.22); /* подсветка совпадения в поиске */
+
+  /* Состояния */
+  --working: #5db884;
+  --working-bg: rgba(93, 184, 132, 0.14);
+  --waiting: #f3bb57;
+  --waiting-bg: rgba(243, 187, 87, 0.14);
+  --waiting-halo: rgba(243, 187, 87, 0.22);
+  --new-bg: rgba(243, 187, 87, 0.16);
+  --error: #e8604f;
+  --error-bg: rgba(232, 96, 79, 0.15);
+  --neutral-mark: #9c9387;
+
+  /* Терминал: остальные цвета выводит агент */
+  --term-bg: #1c1915;
+  --term-fg: #eae4d9;
+  --term-cursor: #f0b04a;
+  --term-selection: #4a4033;
+  --term-dim: #978e81;
+  --term-green: #6ccb8f;
+  --term-red: #f07a72;
+  --term-blue: #8db6ff;
+  --term-frame: #463e33;
+  --agent-ink: #e8e1d6; /* буквы иконки агента в шапке */
+
+  /* Радиусы */
+  --r-kbd: 6px; /* клавиши в подсказках */
+  --r-row: 12px; /* строки, пункты меню */
+  --r-sheet: 18px; /* терминал, карточки, меню */
+  --r-dialog: 24px; /* окно запуска, диалог */
+  --r-pill: 999px; /* кнопки, чипы, поля, вкладки, отметки */
+
+  /* Тени: только у того, что лежит над фоном */
+  --shadow-sheet: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --shadow-menu: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-dialog: 0 32px 80px rgba(0, 0, 0, 0.6);
+  --shadow-launch-focus: 0 0 0 5px var(--accent-glow), 0 24px 60px rgba(0, 0, 0, 0.45);
+  --ring-focus-field: 0 0 0 4px var(--accent-soft); /* поле в фокусе */
+
+  /* Отступы: шаг 4, 2 и 6 — только внутри мелких элементов */
+  --sp-2: 2px;
+  --sp-4: 4px;
+  --sp-6: 6px;
+  --sp-8: 8px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-24: 24px;
+  --sp-32: 32px;
+  --sp-48: 48px;
+  --sp-64: 64px;
+
+  /* Шрифты */
+  --font-ui: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-icons: 'Material Symbols Outlined';
+
+  /* Шкала текста: размер/строка · жирность · трекинг */
+  --t-display: 800 44px/48px var(--font-ui); /* крупный заголовок, −3% */
+  --t-page: 800 24px/32px var(--font-ui); /* заголовок страницы, −2% */
+  --t-dialog: 800 20px/28px var(--font-ui); /* заголовок диалога и раздела настроек, −1% */
+  --t-title: 800 16px/22px var(--font-ui); /* заголовок, −1% */
+  --t-section: 700 14px/20px var(--font-ui); /* раздел, вторичным цветом */
+  --t-body: 600 14px/20px var(--font-ui); /* текст; в описаниях 500 */
+  --t-body-regular: 500 14px/20px var(--font-ui);
+  --t-secondary: 500 13px/18px var(--font-ui);
+  --t-caption: 600 12px/16px var(--font-ui);
+  --t-terminal: 400 13px/17px var(--font-mono);
+  --t-code: 400 12px/16px var(--font-mono);
+  --t-code-strong: 500 12px/16px var(--font-mono);
+  --t-phone: 600 16px/24px var(--font-ui);
+  --ls-display: -0.03em;
+  --ls-page: -0.02em;
+  --ls-title: -0.01em;
+
+  /* Движение */
+  --fast: 120ms;
+  --base: 180ms;
+  --slow: 240ms;
+  --out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --in: cubic-bezier(0.4, 0, 1, 1);
+  --menu-in: 140ms; /* меню и выбор проекта */
+  --menu-out: 100ms;
+  --overlay-in: 160ms; /* затемнение под диалогом */
+  --toast-out: 160ms;
+
+  /* Фон наведения и нажатия для тихих кнопок зависит от поверхности под ними */
+  --hover-bg: var(--surface-1);
+  --press-bg: var(--surface-2);
+}
+
+/* Тихие кнопки на листе (диалог, карточка) и на элементе (меню, сообщение) */
+.on-surface-1 {
+  --hover-bg: var(--surface-2);
+  --press-bg: var(--surface-3);
+}
+
+.on-surface-2 {
+  --hover-bg: var(--surface-3);
+  --press-bg: var(--surface-3);
+}

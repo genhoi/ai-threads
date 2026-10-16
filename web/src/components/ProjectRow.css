@@ -1,0 +1,125 @@
+/* Строка проекта. sheet: 40/36/32, panel (панель слева): 36/34/28. */
+.prow-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.prow {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  border-radius: var(--r-row);
+  transition: background-color var(--fast) var(--out);
+}
+
+.prow--panel {
+  height: 36px;
+}
+
+.prow:hover,
+.prow.is-hover,
+.prow.has-menu {
+  background: var(--surface-1);
+}
+
+.prow__main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 12px 0 6px;
+  border-radius: var(--r-row);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.prow__chevron {
+  color: var(--text-3);
+}
+
+.prow__name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Закреплённый: булавка сразу за именем и занимает остаток строки */
+.prow--pinned .prow__name {
+  flex: 0 1 auto;
+}
+
+.prow__pin.icon {
+  flex: 1;
+  width: auto;
+  color: var(--text-3);
+}
+
+.prow__marks {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.prow__marks .smark--error {
+  margin: 0 1px 0 0;
+}
+
+/* При наведении знаки сменяются кнопками «+» и «⋯» */
+.prow__actions {
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  padding-right: 6px;
+}
+
+.prow__actions .btn {
+  --hover-bg: var(--surface-3);
+  --press-bg: var(--surface-3);
+  color: var(--text);
+}
+
+.prow--actions:is(:hover, :focus-within, .has-menu, .is-hover) .prow__actions {
+  display: flex;
+}
+
+.prow--actions:is(:hover, :focus-within, .has-menu, .is-hover) .prow__marks {
+  display: none;
+}
+
+.prow--actions:is(:hover, :focus-within, .has-menu, .is-hover) .prow__main {
+  padding-right: 0;
+}
+
+.prow__children {
+  display: flex;
+  flex-direction: column;
+}
+
+.prow__more {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px 0 53px;
+  border-radius: var(--r-row);
+  color: var(--text-3);
+  font: 600 13px var(--font-ui);
+  text-align: left;
+  transition: color var(--fast) var(--out);
+}
+
+.prow--panel ~ .prow__children .prow__more {
+  height: 28px;
+}
+
+.prow__more:hover {
+  color: var(--text);
+}

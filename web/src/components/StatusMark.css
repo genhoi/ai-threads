@@ -1,0 +1,129 @@
+/* Знаки состояния. Размеры как в строках: кольцо 9, круг 8, ромб 7 с полями по 1 px. */
+.smark-slot {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.smark {
+  display: block;
+  flex: none;
+  box-sizing: border-box;
+}
+
+.smark--starting,
+.smark--working {
+  width: 9px;
+  height: 9px;
+  border-radius: 5px;
+  border: 2px dotted var(--neutral-mark);
+}
+
+/* Пунктир вращается: оборот за 2 с */
+.smark--starting.spin {
+  animation: nit-spin 2s linear infinite;
+}
+
+/* Кольцо с разрывом: оборот за 1,2 с */
+.smark--working {
+  border: 2px solid var(--working);
+  border-top-color: transparent;
+}
+
+.smark--working.spin {
+  animation: nit-spin 1.2s linear infinite;
+}
+
+.smark--waiting {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--waiting);
+}
+
+.smark--new {
+  box-shadow: 0 0 0 3px var(--waiting-halo);
+}
+
+.smark--error {
+  width: 7px;
+  height: 7px;
+  margin: 0 1px;
+  background: var(--error);
+  transform: rotate(45deg);
+}
+
+.smark.smark--exited {
+  color: var(--neutral-mark);
+}
+
+.smark--idle {
+  width: 9px;
+  height: 9px;
+}
+
+/* Телефон */
+.smark-slot--md .smark--starting,
+.smark-slot--md .smark--working {
+  width: 10px;
+  height: 10px;
+}
+
+.smark-slot--md .smark--waiting {
+  width: 9px;
+  height: 9px;
+  border-radius: 5px;
+}
+
+.smark-slot--md .smark--error {
+  width: 8px;
+  height: 8px;
+}
+
+/* Перекрёстное затухание при смене состояния */
+.smark--leaving {
+  position: absolute;
+  animation: nit-exit var(--base) var(--in) forwards;
+}
+
+.smark--entering {
+  animation: nit-fade-in var(--base) var(--out);
+}
+
+.smark--starting.spin.smark--entering {
+  animation:
+    nit-fade-in var(--base) var(--out),
+    nit-spin 2s linear infinite;
+}
+
+.smark--working.spin.smark--entering {
+  animation:
+    nit-fade-in var(--base) var(--out),
+    nit-spin 1.2s linear infinite;
+}
+
+.smark--starting.spin.smark--leaving {
+  animation:
+    nit-exit var(--base) var(--in) forwards,
+    nit-spin 2s linear infinite;
+}
+
+.smark--working.spin.smark--leaving {
+  animation:
+    nit-exit var(--base) var(--in) forwards,
+    nit-spin 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smark--starting.spin.smark--entering,
+  .smark--working.spin.smark--entering {
+    animation: nit-fade-in var(--base) var(--out) !important;
+  }
+
+  .smark--starting.spin.smark--leaving,
+  .smark--working.spin.smark--leaving {
+    animation: nit-exit var(--base) var(--in) forwards !important;
+  }
+}

@@ -4,218 +4,123 @@
 
 **English** · [Русский](README.ru.md)
 
-Nit (Russian for "thread") is a local web app for finding and resuming coding-agent sessions. It
-collects the logs of Claude Code, Codex, Grok, Kimi, ZCode and Cursor Agent into one list, searches
-titles and conversations, and gives you the command that resumes a session in your terminal. On
-request, an agent writes a summary of one session or of all sessions from the last 3–5 days.
+Nit (Russian for "thread") is a local web app for working with coding agents: Claude Code, Codex,
+Grok, Kimi and Cursor Agent. You start agents in it, answer them in a real terminal, find old sessions
+and get a summary of the last few days. From your phone too.
 
-The interface is in English and Russian. Nit follows your browser language and falls back to English;
-the `language` [setting](#settings) fixes it.
+<p align="center"><img src="docs/images/screen-session.png" alt="Claude Code asks for permission to run a command; on the left, who waits for you, who is working, and the projects" width="100%"></p>
 
-![Main screen](docs/images/screen-main.png)
+The interface is in Russian for now.
 
-## Features
+## What it does
 
-- One list of sessions from all agents: project, branch, time, the agent's last reply. You can rename
-  a session, pin it to the top, mark it as done or hide it from the list.
-- Quick search by title, branch, path, ID and summary. The "+ conversation" toggle also searches the
-  conversation text, within the last 512 KB of each log.
-- Full log search without an agent: type a query and pick "Search full logs" under the search field,
-  or press Enter when the quick search found nothing. Nit reads whole logs, including command output
-  and files the agent read, and shows a snippet around each match. It takes a few seconds and shows its
-  progress.
-- Smart search in plain words: type the request and pick "Ask the agent" under the search field or
-  press Ctrl+Enter, for example "find sessions about moving message_profile to partitions in claude
-  code and codex". An agent turns the request into search terms plus filters by agent, project
-  and date. Nit looks for the terms in the logs, then the agent picks the matching sessions and says why
-  each one fits. A one-word query such as a ticket number skips the first step. It usually takes 1–3
-  minutes; the sessions found by the terms show up before the agent finishes.
-- The agent's work opens on the right, like a session: what Nit sent to the agent, its reasoning when
-  the CLI reports it, the files it reads, the commands it runs and its answers, live. When it is done,
-  you can write to the agent in the same session, right on the page or in a terminal. The same agent
-  log is available for summaries.
-- A choice of agent, model and reasoning effort next to "Ask the agent" and "Summarize". By default Nit
-  uses what is configured in the CLI, and the model list comes from the CLI itself, so new models show
-  up without changing Nit's settings.
-- A ready command to resume a session, such as `cd -- <folder> && codex resume <id>`. A checkbox in
-  the settings adds the agent's flag for running without approval prompts.
-- A terminal on the right. "Open in terminal" (or the O key) resumes the session in the agent's CLI,
-  and you work with the agent right on the page. The agent runs in tmux, so it keeps working when you
-  close the page or restart Nit, and opening the session again brings back the same terminal.
-  "Session" next to "Terminal" shows the summary and the conversation. The menu copies a command that
-  connects any other terminal to the same agent. When the agent exits, Nit shows the exit code and
-  a button to resume the session.
-- Status of running sessions. For Claude Code, Nit shows whether the agent is working or waiting for
-  your reply, and the header counts the sessions waiting for you. For Grok, it shows only that the
-  session is running. Other agents do not report their status.
-- A session summary: a short title, what was done, the next step and up to three related sessions.
-  The Digest page sums up the last 3, 4 or 5 days by project and lists what is left to do.
-  Summaries are written by an installed CLI: Kimi, Claude Code, Codex or Grok.
-- Automatic runs (`codex exec`, `claude -p`, `grok -p`, `kimi -p`) are not shown in Mine, only in All.
-  Other agents usually start them for reviews and summaries, and so does Nit itself.
+- **Start.** A new session in the project folder or in a separate copy of the repository (git worktree)
+  with its own branch. If another agent already works in the folder, Nit suggests a copy so the agents
+  don't edit the same files. The model and reasoning effort are picked in the same place.
+- **Who waits for you.** The left panel splits sessions into "waiting for you" and "working". An agent
+  that crashed shows up among the waiting ones with its exit code. Alt+↓ jumps to the next waiting
+  session, even from the terminal.
+- **A real terminal.** Each agent runs in its own CLI inside tmux. Close the page or restart Nit and
+  the agent keeps working. After a reboot Nit shows which sessions were open and resumes the ones
+  you pick.
+- **Sessions started outside Nit.** Nit reads the agents' own logs, so it sees them too and can resume
+  them here.
+- **Search.** Ctrl+K searches titles, branches, tasks and paths, and optionally the conversation. If
+  that finds nothing, you can look for an exact match in all logs. History groups sessions by day and
+  filters them by project and agent.
+- **Summaries.** For one session, and for the last 3, 5 or 7 days across all projects. One of the
+  installed agents writes the summary: Nit runs it without the UI and hands it the logs.
+- **Finishing a task.** "Finish" stops the agent, closes the terminal and deletes the copy with its
+  branch. The copy stays if it has uncommitted files, the branch was never pushed, or another agent
+  works in it. Nit says which one it was.
+- **Phone.** Who is waiting, the terminal screen as text, replies and quick keys, new sessions.
 
-![Smart search](docs/images/screen-search.png)
+<p align="center">
+<img src="docs/images/screen-home.png" alt="Home: starting a new session" width="32%">
+<img src="docs/images/screen-search.png" alt="Session search" width="32%">
+<img src="docs/images/screen-summary.png" alt="Summary of the last three days" width="32%">
+</p>
 
-![Agent log](docs/images/screen-agent.png)
+ZCode sessions show up in lists and search, but only the ZCode app can resume them.
 
-![Digest for several days](docs/images/screen-digest.png)
+Interface design and use cases are in [docs/concept.md](docs/concept.md), the architecture in
+[docs/plan.md](docs/plan.md), phone access in [docs/phone-access.md](docs/phone-access.md) (all in
+Russian). Version 1, in Python, lives on the `v1` branch.
 
-## Getting started
+## Requirements
 
-You need Python 3.10 or newer. The app has no third-party dependencies. Summaries and smart search
-also need one of these CLIs: Kimi, Claude Code, Codex or Grok. The terminal needs tmux
-(`sudo apt install tmux`).
+- Linux or WSL 2 (not tested on macOS);
+- tmux 3.2 or newer;
+- at least one agent: Claude Code, Codex, Grok, Kimi or Cursor Agent;
+- Go 1.27.1 or newer to build. Node.js is needed only to change the UI: the built UI is in `web/dist`.
+
+## Install
 
 ```bash
-git clone https://github.com/genhoi/ai-threads.git
-cd ai-threads
-python3 -m ai_threads            # change the port with --port
+git clone https://github.com/genhoi/ai-threads.git && cd ai-threads
+go build -ldflags "-s -w -X main.version=0.1.0" -o ~/.local/bin/nit ./cmd/nit
+nit                 # http://127.0.0.1:8765, change the port with -port
 ```
 
-Open http://127.0.0.1:8765 in your browser. On the first start Nit reads all logs, and the list fills
-in as it goes.
+To keep Nit running after you close the terminal, install it as a systemd user service. Pass your own
+PATH: systemd's is shorter and doesn't include the agents.
 
-Tested on Linux and WSL 2. On Windows, run it inside WSL.
+```bash
+cat > ~/.config/systemd/user/nit.service <<EOF
+[Unit]
+Description=Nit
+After=network-online.target
 
-Chrome and Edge can open Nit in a window of its own, without tabs and the address bar: install the page
-as an app from the browser menu.
+[Service]
+ExecStart=%h/.local/bin/nit
+Environment="PATH=$PATH"
+Environment=SHELL=/bin/bash
+Environment=LANG=C.UTF-8
+Restart=on-failure
 
-## Terminal
-
-The agent starts the same way as in a regular terminal tab: through your shell (`$SHELL -ic`), so it
-gets `PATH` and aliases from `~/.bashrc`. The folder is the session's folder, the command is the one
-Nit shows above the conversation.
-
-- The mouse wheel scrolls back through the output. Drag with the mouse to select text: it is copied
-  when you release the button. With Shift held, the selection stays on screen and Ctrl+C copies it.
-- Ctrl+V pastes. Ctrl+C without a selection goes to the agent, as in any terminal.
-- The browser keeps some keys for itself: Ctrl+W closes the window, Ctrl+T and Ctrl+N open new ones.
-  If the terminal has focus, the browser asks before closing the page. The agent keeps running anyway.
-- Nit will not start a second agent on a session that is already running in another terminal, if the
-  agent reports it: Claude Code and Grok do.
-- "Close terminal" in the menu stops the agent. To connect from another terminal, copy the command
-  from the same menu: it looks like `tmux -L ai-threads attach-session -t =nit-claude-<id>`.
-
-Nit's tmux has its own socket, `ai-threads`, and does not read `~/.tmux.conf`, so your own tmux
-sessions and settings stay as they are. After a reboot, open the session and press "Open in terminal"
-again: the agent resumes from its log.
-
-## Supported agents
-
-Nit shows the sessions of every agent whose session folder exists. To resume a session or write
-summaries, it also needs the agent's program, which it looks for in `PATH`. If the folder or the
-program is somewhere else, set the path in the settings.
-
-| Agent | ID | Session folder | Resume command | Flag for `skip_approvals` | Writes summaries |
-|---|---|---|---|---|---|
-| Codex | `codex` | `~/.codex` (`CODEX_HOME`) | `codex resume {id}` | `--dangerously-bypass-approvals-and-sandbox` | yes |
-| Claude Code | `claude` | `~/.claude` (`CLAUDE_HOME`) | `claude --resume {id}` | `--dangerously-skip-permissions` | yes |
-| Grok | `grok` | `~/.grok` (`GROK_HOME`) | `grok --resume {id}` | `--always-approve` | yes |
-| Kimi | `kimi` | `~/.kimi-code` (`KIMI_CODE_HOME`) | `kimi --session {id}` | `--auto` | yes |
-| ZCode | `zcode` | `~/.zcode` (`ZCODE_HOME`) | none: sessions are resumed in the ZCode app | — | no |
-| Cursor Agent | `cursor` | `~/.cursor` (`CURSOR_HOME`) | `cursor-agent --resume {id}` | `--force` | no |
-
-Sessions of any agent can be summarized, ZCode and Cursor Agent included. The last column shows which
-agents can write the summaries.
-
-Nit only reads the agents' files. One exception: when Nit reads the ZCode and Cursor Agent SQLite
-databases in WAL mode, SQLite itself may update the `-shm` file next to the database. The data is not
-changed. An agent you open in the terminal writes its own log, as it does in any other terminal.
-
-## Settings
-
-Change settings on the settings screen (the gear in the header) or in the file
-`~/.config/ai-threads/settings.json`. The folder follows `XDG_CONFIG_HOME`, and `AI_THREADS_CONFIG`
-sets the full path to the file. The file needs only the values that differ from the defaults. For
-example, to resume Codex sessions without approval prompts, have Claude Code write session summaries
-and always use the English interface:
-
-```json
-{
-  "agents": {
-    "codex": {"skip_approvals": true}
-  },
-  "summary": {"agent": "claude"},
-  "language": "en"
-}
+[Install]
+WantedBy=default.target
+EOF
+systemctl --user daemon-reload && systemctl --user enable --now nit
+journalctl --user -u nit -f        # logs
 ```
 
-In the field names, `<id>` is the agent ID from the table above.
+## Data
 
-| Field | Default | Meaning |
-|---|---|---|
-| `agents.<id>.enabled` | `true` | show the agent's sessions |
-| `agents.<id>.home` | see the agents table | session folder; the environment variable wins |
-| `agents.<id>.program` | found in `PATH` | path to the agent's program |
-| `agents.<id>.skip_approvals` | `false` | add the agent's flag for running without approval prompts to the resume command (see the agents table) |
-| `summary.agent`, `digest.agent` | `auto` | who writes session summaries and multi-day digests: `kimi`, `claude`, `codex`, `grok`. `auto` picks the first installed one in this order |
-| `search.agent` | `auto` | who parses smart search requests and picks sessions; same values |
-| `summary.timeout`, `digest.timeout`, `search.timeout` | `300`, `900`, `300` | how many seconds to wait for the agent, from 10 to 7200 |
-| `language` | `auto` | interface and summary language: `ru` or `en`. `auto` follows the browser and falls back to English |
-| `temp_dirs` | `["/tmp", "/var/tmp", "~/.local"]` | sessions started in these folders or inside them count as temporary and are not shown in Mine |
+- settings: `~/.config/ai-threads/settings.json` (or `$AI_THREADS_CONFIG`);
+- names, pins, summaries, the log cache and phone keys: `~/.local/share/ai-threads/`
+  (or `$AI_THREADS_DATA`);
+- repository copies for parallel agents: `~/.nit/worktrees/<project>/<branch>`;
+- terminals: tmux with its own socket `ai-threads`: `tmux -L ai-threads ls`;
+- the Tailscale node for phone access: `~/.threadgate`.
 
-Environment variables win over the file: the folder variables from the agents table, and `AI_THREADS_SUMMARY_TIMEOUT`,
-`AI_THREADS_DIGEST_TIMEOUT` and `AI_THREADS_SEARCH_TIMEOUT` for timeouts in seconds.
+What each file holds, every settings field and the environment variables are in
+[docs/plan.md](docs/plan.md) (in Russian).
 
-Nit re-reads the file when it changes, no restart needed. If the file has an error, such as broken
-JSON, an unknown field or a wrong value, Nit uses the defaults and shows the reason at startup and on
-the settings screen.
+## Phone
 
-![Settings](docs/images/screen-settings.png)
+<img src="docs/images/screen-phone.png" alt="Nit on a phone: who waits, who works, projects" width="260" align="right">
 
-## Data and privacy
+Settings → «Доступ с телефона» → turn it on. Nit starts a Tailscale node inside its own process and
+shows a QR code with a link. You need a free Tailscale account; no static IP is required. The address
+opens only from devices in your Tailscale network, so the phone needs the Tailscale app. The
+«Из интернета» switch (Tailscale Funnel) opens the address to the whole internet, and then the app
+isn't needed. Either way you sign in with the key from the QR code.
 
-- Your titles, pins, marks, session summaries and multi-day digests are stored in
-  `~/.local/share/ai-threads/state.json`. `AI_THREADS_DATA` changes the folder. `cache.json` in the
-  same folder is a cache of parsed logs and can be deleted.
-- The Data menu in the header exports your titles, pins, marks and session summaries to one
-  JSON file and imports them back. Import adds to the current data and deletes nothing, but for a
-  session that is already there it replaces the title and the summary with the ones from the file.
-  Multi-day digests are not exported: you can compose them again.
-- Summaries and smart search run the chosen CLI, which sends data to its model provider, as in regular
-  work with that agent.
-- For a session summary, the CLI reads the session log, including command output and files the agent
-  read. For ZCode and Cursor Agent, Nit passes only the conversation text. The CLI also gets the
-  titles of up to 30 other sessions from the same folder over the last 30 days, not counting
-  automatic, temporary and hidden ones, to find related sessions.
-- For a multi-day digest, the CLI gets the titles, existing summaries and short excerpts of the
-  period's sessions, and it may open some of the logs in full.
-- For smart search, the CLI gets your request, the project names from the current section (Mine or
-  All), and for each of the top 30 candidates: title, summary, first request and up
-  to three conversation snippets. Command output and files the agent read are not sent, even if the
-  terms were found there.
-- Logs go nowhere until you press "Summarize" or "Ask the agent".
-- Working folders of these runs are kept for a week in `~/.local/share/ai-threads/runs`: Claude Code
-  and Kimi find a session by its folder, and without it you could not write to the agent afterwards.
-- The CLI runs without permission to change files: Kimi and Claude Code get only the `Read` tool,
-  Codex and Grok run in a read-only sandbox.
+The phone shows who waits for you and who is working. A session is shown as the terminal screen
+with wrapped lines. Reply with text or quick keys: 1, 2, 3, Enter, Esc, Ctrl+C, arrows. The terminal
+size on the computer stays the same.
 
-## Security
+Details are in [docs/phone-access.md](docs/phone-access.md) (in Russian).
 
-The server listens on `127.0.0.1` only and has no password: any user or program on this machine can
-open it. Requests with a foreign `Host` header are rejected. Requests that change data are accepted
-only with Nit's own `Origin` header, so a third-party website open in your browser cannot send them.
-The browser only passes a session key; the server finds the log path itself.
-
-The terminal connects over WebSocket and accepts only the same `Origin`. Keep in mind what the
-terminal adds: whoever can reach the server can type into your agent's terminal, which means running
-commands as you. On a computer with other users, do not run Nit, or run it without tmux, so the
-terminal stays off.
+<br clear="right">
 
 ## Development
 
 ```bash
-./scripts/setup.sh                      # pytest and Playwright with Chromium and WebKit in .venv
-.venv/bin/python -m pytest -q           # all tests; without a browser: --ignore=tests/ui
-.venv/bin/python scripts/demo_screenshots.py   # README screenshots from made-up sessions
+go test ./...                      # server
+cd web && npm ci && npm run build  # UI; npm run dev rebuilds on change
 ```
 
-WebKit in WSL needs system libraries: `sudo .venv/bin/python -m playwright install-deps webkit`.
-Tests work on copies of the fixtures from `tests/fixtures` and on CLI stubs from `tests/stubs`, and
-never touch real logs or data. How the app works and how to add a new agent:
-[docs/architecture.md](docs/architecture.md) (in Russian).
-
-## License
-
-[MIT](LICENSE). IBM Plex Sans and JetBrains Mono fonts are under the SIL Open Font License; the
-license texts are in `static/fonts/`.
+Open the UI with design sample data and no backend: `http://127.0.0.1:8765/?mock`. Modes are described in
+[web/README.md](web/README.md).

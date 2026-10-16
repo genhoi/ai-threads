@@ -1,0 +1,56 @@
+/* Иконка агента. Подложка и скругление — у самой иконки; кружок с буквами остаётся только
+   для неизвестного агента. */
+.agent-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--ab);
+  height: var(--ab);
+  border-radius: calc(var(--ab) / 4);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+.agent-badge:not(:has(svg)) {
+  border-radius: calc(var(--ab) / 2);
+  background: var(--border);
+}
+
+.agent-badge svg {
+  display: block;
+}
+
+.agent-badge--16 {
+  --ab: 16px;
+  font-size: 7px;
+}
+
+.agent-badge--18 {
+  --ab: 18px;
+  font-size: 8px;
+}
+
+.agent-badge--24 {
+  --ab: 24px;
+  font-size: 10px;
+}
+
+.agent-badge--28 {
+  --ab: 28px;
+  font-size: 10px;
+}
+
+.agent-badge--32 {
+  --ab: 32px;
+  font-size: 11px;
+}
+
+/* Недоступный агент: иконка бледнеет и теряет цвет, рядом всегда причина */
+.agent-badge.is-disabled {
+  opacity: 0.45;
+  filter: grayscale(1);
+}

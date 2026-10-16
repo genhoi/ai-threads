@@ -1,0 +1,53 @@
+/* Обёртка не влияет на раскладку: подсказка цепляется к первому дочернему элементу */
+.tooltip-host {
+  display: contents;
+}
+
+.tooltip-layer {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  animation: nit-fade-in var(--fast) var(--out);
+}
+
+.tooltip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-row);
+  background: var(--surface-3);
+  box-shadow: var(--shadow-menu), inset 0 0 0 1px var(--border);
+  color: var(--text);
+  font: 600 13px/18px var(--font-ui);
+  white-space: nowrap;
+}
+
+/* С клавишей справа */
+.tooltip--kbd {
+  padding: 0 6px 0 12px;
+}
+
+/* Многострочная: полное название, пояснение с путём */
+.tooltip--block {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  height: auto;
+  max-width: 320px;
+  padding: 8px 12px;
+  white-space: normal;
+}
+
+.tooltip__title {
+  font-weight: 700;
+}
+
+.tooltip__path {
+  font: var(--t-code);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}

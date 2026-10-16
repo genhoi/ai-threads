@@ -1,0 +1,151 @@
+/* Поле ввода из листа «Компоненты». is-hover и is-focus — состояния для галереи. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field.is-focus {
+  outline: none;
+}
+
+.field__box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text);
+  cursor: text;
+}
+
+.field--icon .field__box {
+  padding: 0 14px;
+}
+
+.field--action .field__box {
+  padding-right: 4px;
+}
+
+.field--sunken .field__box {
+  background: var(--surface-0);
+}
+
+.field--outline .field__box {
+  background: transparent;
+}
+
+.field--48 .field__box {
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 24px;
+}
+
+.field:not(.is-disabled, .is-error) .field__box:hover,
+.field.is-hover .field__box {
+  box-shadow: inset 0 0 0 1px var(--border-hover);
+}
+
+.field:not(.is-disabled) .field__box:focus-within,
+.field.is-focus .field__box {
+  box-shadow:
+    inset 0 0 0 1px var(--accent),
+    var(--ring-focus-field);
+}
+
+.field.is-error .field__box {
+  box-shadow: inset 0 0 0 1px var(--error);
+}
+
+.field__icon {
+  color: var(--text-2);
+}
+
+/* Пока поле пустое, иконка цвета подсказки */
+.field__box:has(.field__input:placeholder-shown) .field__icon {
+  color: var(--text-3);
+}
+
+.field__box:focus-within .field__icon,
+.field.is-focus .field__icon {
+  color: var(--text-2);
+}
+
+.field__prefix {
+  flex: none;
+  font: 600 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+.field__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: 500 14px var(--font-ui);
+  caret-color: var(--accent);
+}
+
+.field--48 .field__input {
+  font-size: 16px;
+}
+
+.field--mono .field__input {
+  font: 400 13px var(--font-mono);
+}
+
+.field__input::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+  font: 500 14px var(--font-ui);
+}
+
+.field--48 .field__input::placeholder {
+  font-size: 16px;
+}
+
+.field--mono-ph .field__input::placeholder {
+  font: 400 13px var(--font-mono);
+}
+
+.field__input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.field__suffix {
+  flex: none;
+  margin-left: 2px;
+  font: 600 12px var(--font-ui);
+  color: var(--text-3);
+}
+
+.field__error {
+  padding-left: 14px;
+  font: 600 12px/16px var(--font-ui);
+  color: var(--error);
+}
+
+/* Недоступно */
+.field.is-disabled .field__box {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.field.is-disabled .field__icon,
+.field.is-disabled .field__input::placeholder {
+  color: var(--text-disabled);
+}
+
+.field.is-disabled .field__input {
+  cursor: not-allowed;
+}

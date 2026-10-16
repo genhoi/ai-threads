@@ -1,0 +1,365 @@
+/* Галерея повторяет раскладку листа «Компоненты» (Components.dc.html) */
+.gal {
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 72px 80px 96px;
+  line-height: 1.45;
+}
+
+.gal__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gal__kicker {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+
+.gal__title {
+  font: var(--t-display);
+  letter-spacing: var(--ls-display);
+}
+
+.gal-section {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 48px;
+}
+
+.gal-section__aside {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gal-section__title {
+  font: var(--t-page);
+  letter-spacing: var(--ls-page);
+}
+
+.gal-section__text {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-2);
+}
+
+.gal-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+}
+
+.gal-cap {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.gal-rowlabel {
+  font-weight: 700;
+}
+
+.gal-w110 {
+  flex: none;
+  width: 110px;
+}
+
+.gal-w272 {
+  width: 272px;
+}
+
+.gal-grid {
+  display: grid;
+}
+
+.gal-grid--states {
+  grid-template-columns: 110px repeat(6, minmax(0, 1fr));
+  gap: 18px 16px;
+  align-items: center;
+}
+
+.gal-grid--6 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.gal-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px 16px;
+}
+
+.gal-grid--chips {
+  grid-template-columns: 110px repeat(5, minmax(0, 1fr));
+  gap: 12px 16px;
+  align-items: center;
+}
+
+.gal-grid--rows {
+  grid-template-columns: repeat(3, 296px);
+  gap: 28px 48px;
+}
+
+.gal-grid--projects {
+  grid-template-columns: repeat(4, 272px);
+  gap: 28px 40px;
+  align-items: start;
+}
+
+.gal-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gal-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--separator);
+}
+
+.gal-pair {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gal-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 40px;
+}
+
+.gal-flow .gal-cell {
+  gap: 12px;
+}
+
+.gal-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gal-stack--start {
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.gal-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.gal-wrap--top {
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.gal-gap {
+  width: 16px;
+}
+
+.gal-marks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 32px;
+}
+
+.gal-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.gal-mark--check {
+  gap: 8px;
+}
+
+.gal-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+.gal-copy__hover {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.gal-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Ширина содержимого панели: 296 минус поля 16 и 12 */
+.gal-panel__list {
+  display: flex;
+  flex-direction: column;
+  width: 268px;
+}
+
+.gal-menus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+.gal-menus__sub {
+  margin-top: 196px;
+}
+
+.gal-dialog {
+  display: flex;
+  height: 460px;
+}
+
+.gal-dialog .dialog-overlay {
+  flex: 1;
+}
+
+.gal-points {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gal-code {
+  font: 500 13px var(--font-mono);
+}
+
+.gal-code--sm {
+  font: 400 12.5px var(--font-mono);
+  color: var(--text-2);
+}
+
+.gal-tips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 32px 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--separator);
+}
+
+.tooltip.gal-flat {
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.gal-inline {
+  width: 240px;
+}
+
+.gal-phone {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 366px;
+}
+
+/* Рамка терминала тянется за угол: проверка подгонки размера */
+.gal-term {
+  display: flex;
+  width: 760px;
+  max-width: 100%;
+  height: 340px;
+  min-width: 320px;
+  min-height: 160px;
+  padding: 0 32px 48px 0;
+  overflow: hidden;
+  resize: both;
+}
+
+.gal-term .term {
+  flex: 1;
+}
+
+.gal-icons {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gal-icon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  padding: 0 14px;
+  border-radius: var(--r-row);
+  background: var(--surface-1);
+}
+
+.gal-icon__name {
+  min-width: 0;
+  font: 400 10.5px/14px var(--font-mono);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gal-icons-size {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-right: 32px;
+}
+
+@media (max-width: 960px) {
+  .gal {
+    gap: 48px;
+    padding: 32px 16px 64px;
+  }
+
+  .gal-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .gal-section__body {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .gal-grid--states,
+  .gal-grid--chips,
+  .gal-grid--6,
+  .gal-grid--3,
+  .gal-grid--rows,
+  .gal-grid--projects {
+    width: max-content;
+  }
+
+  .gal-grid--6,
+  .gal-grid--3 {
+    grid-template-columns: repeat(2, 260px);
+  }
+
+  .gal-icons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gal-phone {
+    width: 100%;
+  }
+}

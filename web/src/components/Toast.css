@@ -1,0 +1,87 @@
+.toast-host {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+/* Появление снизу: translateY(8px)→0 и прозрачность за --base, уход — прозрачностью за 160 мс */
+.toast-slot {
+  pointer-events: auto;
+  --enter-from: translateY(8px);
+  animation: nit-enter var(--base) var(--out);
+}
+
+.toast-slot.is-leaving {
+  pointer-events: none;
+  animation: nit-exit var(--toast-out) var(--in) forwards;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 8px 8px 16px;
+  border-radius: var(--r-sheet);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-menu), inset 0 0 0 1px var(--border);
+  color: var(--text);
+  font: var(--t-body-regular);
+}
+
+.toast__icon {
+  color: var(--text-3);
+}
+
+.toast__mark {
+  margin: 0 5px;
+}
+
+.toast__mark .smark--error {
+  margin: 0;
+}
+
+.toast__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.toast__title {
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast__title--single {
+  flex: 1;
+}
+
+.toast__text {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast--error .toast__text {
+  font: var(--t-code);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Внутри сообщения кнопки не сжимаются */
+.toast .btn {
+  flex: none;
+}

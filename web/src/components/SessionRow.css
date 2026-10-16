@@ -1,0 +1,234 @@
+/* Строка сессии. sheet — значения листа «Компоненты», panel — панели слева (плотнее). */
+.srow {
+  position: relative;
+  border-radius: var(--r-row);
+  transition:
+    background-color var(--fast) var(--out),
+    color var(--fast) var(--out);
+}
+
+.srow:hover,
+.srow.is-hover,
+.srow.is-echo {
+  background: var(--surface-1);
+}
+
+.srow.is-selected {
+  background: var(--surface-2);
+}
+
+.srow__main {
+  display: flex;
+  width: 100%;
+  border-radius: var(--r-row);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.srow__title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Несколько строк */
+.srow--block .srow__main {
+  gap: 12px;
+  padding: 10px 12px;
+  line-height: 1.45;
+}
+
+.srow--block.srow--panel .srow__main {
+  padding: 8px 12px;
+  line-height: 20px;
+}
+
+.srow--block .srow__mark {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.srow--block .srow__mark:has(.smark--error) {
+  margin-top: 7px;
+}
+
+.srow__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.srow__line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* Первая строка ровно 20 px, как в макете: время мельче названия и при выравнивании по базовой
+   линии добавляло бы доли пикселя, а при наведении (время сменяется меню) строка прыгала бы */
+.srow--block .srow__line1 {
+  height: 20px;
+}
+
+.srow--block .srow__title {
+  font-weight: 600;
+}
+
+.srow--new .srow__title {
+  font-weight: 700;
+}
+
+.srow__time {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.srow__time--waiting {
+  font-weight: 700;
+  color: var(--waiting);
+}
+
+.srow__time--working,
+.srow__time--starting {
+  font: 500 12px var(--font-mono);
+  color: var(--working);
+}
+
+.srow__time--starting {
+  color: var(--text-3);
+}
+
+.srow__text,
+.srow__cmd {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.srow__text {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.srow__error {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--error);
+}
+
+.srow__cmd {
+  font: 400 12px/17px var(--font-mono);
+  color: var(--text-3);
+}
+
+.srow__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.srow--panel .srow__text,
+.srow--panel .srow__error {
+  line-height: 18px;
+}
+
+.srow--panel .srow__cmd {
+  line-height: 16px;
+}
+
+.srow--panel .srow__meta {
+  line-height: 16px;
+}
+
+/* Меню «⋯» на месте времени: при наведении, фокусе и открытом меню */
+.srow__more {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  display: none;
+}
+
+.srow--panel .srow__more {
+  top: 4px;
+}
+
+.srow .srow__more {
+  --hover-bg: var(--surface-3);
+  --press-bg: var(--surface-3);
+  color: var(--text);
+}
+
+.srow__spacer {
+  display: none;
+  flex: none;
+  width: 28px;
+}
+
+.srow--menu:is(:hover, :focus-within, .has-menu, .is-hover) .srow__more {
+  display: flex;
+}
+
+.srow--menu:is(:hover, :focus-within, .has-menu, .is-hover) .srow__time {
+  display: none;
+}
+
+.srow--menu:is(:hover, :focus-within, .has-menu, .is-hover) .srow__spacer {
+  display: block;
+}
+
+.srow--menu:is(:hover, :focus-within, .has-menu, .is-hover) .srow__main {
+  padding-right: 8px;
+}
+
+/* Одна строка */
+.srow--line .srow__main {
+  align-items: center;
+  gap: 12px;
+  height: 36px;
+  padding: 0 12px;
+}
+
+.srow--line.srow--check .srow__main {
+  gap: 10px;
+  padding: 0 12px 0 10px;
+}
+
+.srow--line.srow--nested .srow__main {
+  gap: 10px;
+  padding: 0 12px 0 34px;
+}
+
+.srow--line.srow--nested.srow--panel .srow__main {
+  height: 34px;
+}
+
+.srow--line.is-muted {
+  color: var(--text-2);
+}
+
+.srow--line.is-muted:hover,
+.srow--line.is-muted.is-hover {
+  color: var(--text);
+}
+
+.srow__check,
+.srow__copy {
+  color: var(--text-3);
+}
+
+.srow__date {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+}

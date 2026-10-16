@@ -1,0 +1,1427 @@
+/* Страницы: история, сводка, после перезагрузки, первый запуск, настройки, телефон отключён.
+   Значения из макетов design/v2/…/Nit-History, Nit-Summary, Nit-Reboot, Nit-FirstRun, Nit-Settings. */
+
+/* ───────── История ───────── */
+.page__head--wide {
+  padding-left: 12px;
+}
+
+.hist__fill {
+  flex: 1;
+}
+
+.hist__count {
+  flex: none;
+  font: 600 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+.hist__scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 16px 0 4px;
+  overflow-y: auto;
+}
+
+.hist__list {
+  display: flex;
+  flex-direction: column;
+  max-width: 920px;
+  padding-bottom: 32px;
+}
+
+.hist__day {
+  display: flex;
+  flex-direction: column;
+}
+
+.hist__dayname {
+  padding: 20px 12px 8px;
+  font: var(--t-section);
+  color: var(--text-2);
+}
+
+.hist__dayname--first {
+  padding-top: 16px;
+}
+
+.hrow {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--r-row);
+  color: var(--text);
+  font: var(--t-body-regular);
+  text-align: left;
+  transition: background-color var(--fast) var(--out);
+}
+
+.hrow:hover {
+  background: var(--surface-1);
+}
+
+.hrow:active {
+  background: var(--surface-2);
+  transition: none;
+}
+
+.hrow__mark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 9px;
+  height: 20px;
+}
+
+.hrow__check.icon {
+  color: var(--text-3);
+}
+
+.hrow__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hrow__line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Иконка агента в строке истории: по центру первой строки, а не по базовой линии текста */
+.hrow__agent {
+  align-self: center;
+  margin-right: -4px;
+}
+
+.hrow__title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hrow--new .hrow__title {
+  font-weight: 700;
+}
+
+.hrow--done .hrow__title {
+  color: var(--text-2);
+}
+
+.hrow__time {
+  flex: none;
+  font: 400 12px var(--font-mono);
+  color: var(--text-3);
+}
+
+.hrow__meta {
+  min-width: 0;
+  font: var(--t-secondary);
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hrow__who {
+  font-weight: 600;
+  color: var(--text-3);
+}
+
+.hrow__error {
+  font-weight: 600;
+  color: var(--error);
+}
+
+.hist__state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px;
+  color: var(--text-2);
+}
+
+.hist__error {
+  color: var(--error);
+}
+
+.hist__empty {
+  padding: 48px 12px;
+  color: var(--text-2);
+}
+
+.hist__sentinel {
+  height: 1px;
+}
+
+/* Проектов бывает много: список меню листается */
+.menu.hist-menu {
+  max-height: min(480px, calc(100vh - 88px));
+}
+
+/* ───────── Сводка ───────── */
+.sum {
+  container-type: inline-size;
+}
+
+.sum__head {
+  gap: 16px;
+}
+
+/* Узкая страница рядом с панелью: шапка переносится в две строки, а не уходит за край */
+@container (max-width: 760px) {
+  .sum__head {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    height: auto;
+    min-height: 64px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .sum__head .sum__fill {
+    display: none;
+  }
+}
+
+.sum__title {
+  margin-right: 0;
+}
+
+.sum__fill {
+  flex: 1;
+  min-width: 0;
+}
+
+/* В узком окне подпись уступает место кнопкам и обрезается многоточием */
+.sum__meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 600 13px var(--font-ui);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+/* Лист со статьёй: как терминал, справа и снизу 16 */
+.sum__sheet {
+  flex: 1;
+  min-height: 0;
+  margin: 0 16px 16px 0;
+  border-radius: var(--r-sheet);
+  background: var(--surface-1);
+  box-shadow:
+    var(--shadow-sheet),
+    inset 0 0 0 1px var(--separator);
+  overflow-y: auto;
+}
+
+.sum.is-wide .sum__sheet {
+  margin-left: 16px;
+}
+
+.sum__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100%;
+  padding: 40px 48px 48px;
+}
+
+.sum__status {
+  width: 100%;
+  max-width: 720px;
+  margin-bottom: 28px;
+}
+
+.sum__loading {
+  margin-top: 24px;
+  color: var(--text-3);
+}
+
+.sum-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+  padding-bottom: 40px;
+  text-align: center;
+}
+
+.sum-empty .job,
+.sum-empty .jobfail {
+  width: 100%;
+  text-align: left;
+}
+
+.sum-empty__title {
+  font: var(--t-dialog);
+  letter-spacing: var(--ls-title);
+}
+
+.sum-empty__text {
+  margin-bottom: 8px;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+/* Сводка статьёй: шрифт 15/24, колонка до 720 */
+.dg {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 720px;
+  color: var(--term-fg);
+  font: 500 15px/24px var(--font-ui);
+}
+
+.dg__title {
+  margin-bottom: 12px;
+  font: var(--t-page);
+  letter-spacing: var(--ls-page);
+  color: var(--text);
+}
+
+.dg__note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font: var(--t-secondary);
+  color: var(--text-3);
+}
+
+.dg__lead {
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.dg__name {
+  margin: 28px 0 8px;
+  font: var(--t-title);
+  color: var(--text);
+}
+
+.dg__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 20px;
+  text-wrap: pretty;
+}
+
+.dg__left {
+  margin-top: 10px;
+  text-wrap: pretty;
+}
+
+/* Узкое окно: период, кто пишет и «Обновить» строкой над листом */
+.sum--phone {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.sum__bar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 12px;
+}
+
+.sum__bar .sum__fill {
+  display: none;
+}
+
+.sum__bar .sum__meta {
+  flex-basis: 100%;
+  padding-left: 4px;
+}
+
+.sum--phone .sum__sheet {
+  margin: 0;
+  border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+}
+
+.sum--phone .sum__inner {
+  padding: 24px 16px 40px;
+}
+
+.sum--phone .dg__title {
+  font-size: 22px;
+  line-height: 28px;
+}
+
+/* ───────── Телефон отключён ───────── */
+.revoked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 32px 24px;
+  background: var(--surface-0);
+}
+
+.revoked__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 440px;
+}
+
+.revoked__title {
+  font: var(--t-page);
+  letter-spacing: var(--ls-page);
+  text-wrap: balance;
+}
+
+.revoked__text {
+  font: 500 16px/24px var(--font-ui);
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.revoked__inner .btn {
+  margin-top: 8px;
+}
+
+/* ───────── После перезагрузки ───────── */
+.reboot,
+.firstrun {
+  display: flex;
+  justify-content: center;
+  padding: 96px 56px 64px 32px;
+  overflow-y: auto;
+}
+
+.reboot__inner,
+.firstrun__inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 720px;
+  height: max-content;
+}
+
+.reboot__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 20px;
+  border-radius: 24px;
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--text-2);
+}
+
+.reboot__title,
+.firstrun__title {
+  margin-bottom: 8px;
+  font: var(--t-page);
+  letter-spacing: var(--ls-page);
+}
+
+.reboot__text,
+.firstrun__text {
+  margin-bottom: 28px;
+  font: 500 15px/22px var(--font-ui);
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+
+.reboot__card {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border-radius: var(--r-sheet);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+
+.reboot__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 12px 0 14px;
+}
+
+.reboot__picked {
+  flex: 1;
+  font: 600 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+.reboot__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 60px;
+  padding: 0 14px;
+  border-radius: var(--r-row);
+  cursor: pointer;
+  transition: background-color var(--fast) var(--out);
+}
+
+.reboot__row:hover {
+  background: var(--surface-2);
+}
+
+.reboot__row.is-disabled {
+  cursor: not-allowed;
+}
+
+.reboot__row.is-disabled:hover {
+  background: transparent;
+}
+
+.reboot__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.reboot__name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reboot__row.is-off .reboot__name {
+  color: var(--text-2);
+}
+
+.reboot__row.is-disabled .reboot__name {
+  color: var(--text-disabled);
+}
+
+.reboot__where {
+  min-width: 0;
+  font: 600 12px/16px var(--font-ui);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reboot__branch {
+  font: 400 12px var(--font-mono);
+}
+
+.reboot__where .icon {
+  margin-left: 6px;
+  vertical-align: -3px;
+}
+
+.reboot__was {
+  flex: none;
+  font: 600 13px var(--font-ui);
+  color: var(--text-2);
+}
+
+.reboot__was.is-error {
+  color: var(--error);
+}
+
+.reboot__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.reboot__note {
+  margin: 14px 0 0 4px;
+  font: 500 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+/* ───────── Первый запуск ───────── */
+.firstrun {
+  padding-top: 80px;
+}
+
+.firstrun__inner {
+  max-width: 680px;
+}
+
+.fr-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-sheet);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+
+.fr-card--tmux {
+  gap: 14px;
+  padding: 20px 20px 20px 22px;
+}
+
+.fr-card--agents {
+  gap: 8px;
+  padding: 20px 20px 12px 22px;
+}
+
+.fr-card + .fr-card {
+  margin-top: 12px;
+}
+
+.fr-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: var(--t-title);
+}
+
+.fr-card--agents .fr-card__head {
+  margin-bottom: 4px;
+}
+
+.fr-card__head .smark {
+  margin: 0 2px;
+}
+
+.fr-cmds {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 23px;
+}
+
+.fr-cmd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fr-cmd__os {
+  flex: none;
+  width: 56px;
+  font: 600 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+.fr-cmd__box {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 4px 0 14px;
+  border-radius: var(--r-row);
+  background: var(--surface-0);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+
+.fr-cmd__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 13px var(--font-mono);
+  color: var(--term-fg);
+}
+
+.fr-agent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding-left: 19px;
+}
+
+.fr-agent__name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.fr-agent__name--note {
+  font: var(--t-secondary);
+  color: var(--text-2);
+}
+
+.fr-agent__link.btn {
+  text-decoration: none;
+}
+
+.firstrun__foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.firstrun__note {
+  font: 500 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+/* ───────── Настройки ───────── */
+.settings {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.settings__grid {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 780px);
+  gap: 48px;
+  padding: 0 16px 80px 4px;
+}
+
+.set-toc {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: 2px;
+  padding-top: 16px;
+}
+
+.set-toc__top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 16px 12px;
+}
+
+.set-toc__top .btn--icon {
+  margin-left: -8px;
+}
+
+.set-toc__title {
+  font: var(--t-page);
+  letter-spacing: var(--ls-page);
+}
+
+.set-toc__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-row);
+  color: var(--text-2);
+  font: 600 14px/20px var(--font-ui);
+  text-align: left;
+  transition:
+    background-color var(--fast) var(--out),
+    color var(--fast) var(--out);
+}
+
+.set-toc__item:hover {
+  background: var(--surface-1);
+  color: var(--text);
+}
+
+.set-toc__item.is-active {
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.set-toc__label {
+  flex: 1;
+}
+
+.set-toc__meta {
+  font: 600 12px var(--font-ui);
+  color: var(--text-3);
+}
+
+.set-save {
+  min-height: 16px;
+  margin-top: 20px;
+  padding: 0 12px;
+  font: 600 12px/16px var(--font-ui);
+  color: var(--text-3);
+  opacity: 0;
+  transition: opacity var(--base) var(--in);
+}
+
+.set-save.is-shown {
+  opacity: 1;
+  transition: opacity var(--fast) var(--out);
+}
+
+.set-save.is-error {
+  color: var(--error);
+}
+
+/* «Настройки хранятся в …» под оглавлением */
+.set-where {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 20px;
+  padding: 0 12px;
+  font: 600 12px/16px var(--font-ui);
+  color: var(--text-3);
+}
+
+.set-where + .set-save {
+  margin-top: 12px;
+}
+
+.set-where__path {
+  font: 400 12px/16px var(--font-mono);
+  color: var(--text-2);
+  word-break: break-all;
+}
+
+.set-main {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+  min-width: 0;
+  padding-top: 24px;
+}
+
+.set-loading {
+  color: var(--text-2);
+}
+
+.set-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scroll-margin-top: 16px;
+}
+
+.set-sec__head {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.set-sec__titles {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.set-sec__title {
+  font: var(--t-dialog);
+  letter-spacing: var(--ls-title);
+}
+
+.set-sec__title:focus {
+  outline: none;
+}
+
+.set-sec__sub {
+  font: var(--t-secondary);
+  color: var(--text-2);
+}
+
+.set-sec__meta {
+  flex: none;
+  font: 600 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+.set-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-sheet);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  --hover-bg: var(--surface-2);
+  --press-bg: var(--surface-3);
+}
+
+.set-card__part {
+  border-top: 1px solid var(--separator);
+}
+
+.set-grid {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px 20px;
+}
+
+.set-grid--pad {
+  padding: 20px;
+}
+
+.set-grid--about {
+  gap: 12px 20px;
+}
+
+.set-grid__label {
+  color: var(--text-2);
+}
+
+.set-grid__label--top {
+  align-self: start;
+  padding-top: 10px;
+}
+
+.set-grid__value {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.set-subhead {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.set-subhead__title {
+  font-weight: 800;
+}
+
+.set-subhead__text {
+  font: var(--t-secondary);
+  color: var(--text-3);
+}
+
+.set-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.set-inline--10 {
+  gap: 10px;
+}
+
+.set-note {
+  font: 500 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+.set-unit {
+  color: var(--text-2);
+}
+
+.set-error {
+  padding-left: 14px;
+  font: 600 12px/16px var(--font-ui);
+  color: var(--error);
+}
+
+/* Минуты: поле 64 по центру */
+.set-num {
+  width: 64px;
+  height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 20px;
+  outline: none;
+  background: var(--surface-0);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text);
+  font: 500 14px var(--font-mono);
+  text-align: center;
+  caret-color: var(--accent);
+}
+
+.set-num:hover {
+  box-shadow: inset 0 0 0 1px var(--border-hover);
+}
+
+.set-num:focus {
+  box-shadow:
+    inset 0 0 0 1px var(--accent),
+    var(--ring-focus-field);
+}
+
+.set-num.is-error {
+  box-shadow: inset 0 0 0 1px var(--error);
+}
+
+.set-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.set-stack--6 {
+  gap: 6px;
+  padding: 0;
+}
+
+.set-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.set-add {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.set-add__input {
+  flex: 1;
+}
+
+.set-state {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.set-state__icon.icon {
+  color: var(--text-3);
+}
+
+.set-mono {
+  font: 400 13px var(--font-mono);
+  color: var(--text-2);
+}
+
+.set-mono--13 {
+  color: var(--text);
+}
+
+.set-caption {
+  font: 600 12px/16px var(--font-ui);
+  color: var(--text-3);
+}
+
+.set-caption .set-mono {
+  font-size: 12px;
+}
+
+/* Доступ с телефона */
+.set-phone__wait {
+  min-height: 144px;
+}
+
+.set-phone__note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  font: 600 13px/18px var(--font-ui);
+  color: var(--text-2);
+}
+
+.set-phone__note .icon {
+  flex: none;
+  color: var(--text-3);
+}
+
+/* Переключатель и что с узлом: строкой, длинная ошибка переносится рядом с переключателем */
+.set-phone__row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.set-remote {
+  display: flex;
+  flex: 1 1 240px;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  text-wrap: pretty;
+}
+
+.set-remote--off {
+  font: 500 13px/20px var(--font-ui);
+  color: var(--text-3);
+}
+
+.set-remote__icon.icon {
+  flex: none;
+  line-height: 20px;
+  color: var(--text-3);
+}
+
+.set-remote__icon--spin.icon {
+  color: var(--working);
+}
+
+.set-remote__icon--warn.icon {
+  color: var(--waiting);
+}
+
+.set-remote__mark {
+  margin: 6px 3px 0;
+}
+
+.set-phone__body {
+  display: flex;
+  gap: 24px;
+  padding: 20px;
+}
+
+.set-phone__qr {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 168px;
+  height: 168px;
+  border-radius: var(--r-row);
+  background: repeating-linear-gradient(45deg, var(--surface-2) 0 6px, var(--surface-disabled) 6px 12px);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text-2);
+  overflow: hidden;
+}
+
+/* Код на белом: камера телефона читает тёмные модули на светлом фоне */
+.set-phone__qr.has-code {
+  background: #fff;
+  box-shadow: none;
+}
+
+.set-phone__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.set-phone__qrerr {
+  padding: 12px;
+  font: 500 12px/16px var(--font-mono);
+  text-align: center;
+}
+
+.set-phone__side {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* Ссылка с ключом: поле только для чтения, ключ скрыт, копируется целиком */
+.set-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 4px 0 16px;
+  border-radius: 20px;
+  background: var(--surface-0);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.set-link__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 13px var(--font-mono);
+}
+
+.set-devices {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 8px 8px 0;
+}
+
+.set-devices__label {
+  padding: 10px 20px 6px;
+  font: var(--t-caption);
+  color: var(--text-3);
+}
+
+.set-device {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 56px;
+  padding-left: 20px;
+}
+
+.set-device__icon {
+  flex: none;
+  color: var(--text-2);
+}
+
+.set-device__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.set-device__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set-device__when {
+  font: var(--t-caption);
+  color: var(--text-3);
+}
+
+.set-data {
+  flex-direction: row;
+  gap: 8px;
+  padding: 20px;
+}
+
+.set-keys {
+  padding: 8px 20px;
+}
+
+.set-keys__row {
+  display: flex;
+  align-items: center;
+  height: 44px;
+}
+
+.set-keys__row + .set-keys__row {
+  border-top: 1px solid var(--separator);
+}
+
+.set-keys__label {
+  flex: 1;
+}
+
+/* Агенты */
+.set-card--list {
+  overflow: hidden;
+}
+
+.ag-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 64px;
+  padding: 0 16px 0 20px;
+  transition: background-color var(--fast) var(--out);
+}
+
+.ag-row + .ag-row {
+  border-top: 1px solid var(--separator);
+}
+
+.ag-row:hover {
+  background: var(--surface-1-hover);
+}
+
+.ag-row:has(> .ag-row__toggle:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.ag-row__toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  height: 100%;
+  color: var(--text);
+  text-align: left;
+}
+
+.ag-row__toggle:focus-visible {
+  outline: none;
+}
+
+/* Вся строка раскрывает карточку; переключатель лежит поверх */
+.ag-row__toggle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.ag-row__switch.switch {
+  position: relative;
+  z-index: 1;
+}
+
+.ag-row__text,
+.ag-head__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ag-row__name {
+  font-weight: 800;
+}
+
+.ag-row__status,
+.ag-head__status {
+  min-width: 0;
+  font: var(--t-secondary);
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ag-row__chev {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  width: 36px;
+  color: var(--text-2);
+  pointer-events: none;
+}
+
+.ag-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 16px 16px 20px;
+  border-bottom: 1px solid var(--separator);
+}
+
+.ag-head__name {
+  font: var(--t-title);
+}
+
+.ag-head__ok.icon {
+  margin-right: 6px;
+  vertical-align: -2px;
+  color: var(--text-3);
+}
+
+.ag-head__collapse .icon {
+  transform: rotate(180deg);
+}
+
+.ag-fields {
+  padding: 20px 20px 24px;
+}
+
+.ag-mono {
+  font: 400 12.5px var(--font-mono);
+}
+
+.ag-mono--strong {
+  color: var(--text-2);
+}
+
+.ag-example {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ag-example__cmd {
+  display: block;
+  padding: 10px 16px;
+  border-radius: var(--r-row);
+  background: var(--surface-0);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--term-fg);
+  font: 400 12.5px/19px var(--font-mono);
+  word-break: break-all;
+}
+
+.ag-example__prompt {
+  color: var(--accent);
+}
+
+.ag-example__caption {
+  font: 600 12px/16px var(--font-ui);
+  color: var(--text-3);
+}
+
+/* Узкое окно и телефон: одна колонка, оглавления нет */
+.settings--phone .settings__grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  padding: 0 12px 48px;
+}
+
+.settings--phone .set-toc {
+  display: none;
+}
+
+.settings--phone .set-main {
+  gap: 40px;
+  padding-top: 8px;
+}
+
+.settings--phone .set-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.settings--phone .set-grid__label--top {
+  padding-top: 0;
+}
+
+.settings--phone .set-sec__head {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.settings--phone .set-sec__head .set-sec__titles {
+  flex-basis: 100%;
+}
+
+.settings--phone .ag-head {
+  flex-wrap: wrap;
+}
+
+.settings--phone .set-phone__body {
+  flex-direction: column;
+}
+
+/* «сохранено» на телефоне — плашкой под шапкой, не сдвигая страницу и не закрывая поле с клавиатурой */
+.settings--phone .set-save {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  z-index: 20;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-menu);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.settings--phone .set-save:empty {
+  display: none;
+}

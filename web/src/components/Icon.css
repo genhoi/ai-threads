@@ -1,0 +1,45 @@
+.icon {
+  display: inline-block;
+  flex: none;
+  overflow: hidden;
+  font-family: var(--font-icons);
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  --icon-fill: 0;
+}
+
+/* Линия везде около 1,2 px */
+.icon--18 {
+  width: 18px;
+  font-size: 18px;
+  font-variation-settings: 'wght' 300, 'FILL' var(--icon-fill);
+}
+
+.icon--16 {
+  width: 16px;
+  font-size: 16px;
+  font-variation-settings: 'wght' 350, 'FILL' var(--icon-fill);
+}
+
+.icon--14 {
+  width: 14px;
+  font-size: 14px;
+  font-variation-settings: 'wght' 400, 'FILL' var(--icon-fill);
+}
+
+.icon--filled {
+  --icon-fill: 1;
+}
+
+.icon.spin {
+  animation: nit-spin 1s linear infinite;
+}

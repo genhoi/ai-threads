@@ -1,0 +1,49 @@
+.state-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px 0 10px;
+  border-radius: 14px;
+  font: 700 13px var(--font-ui);
+  white-space: nowrap;
+  transition:
+    background-color var(--base) var(--out),
+    color var(--base) var(--out);
+}
+
+.state-pill--starting {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.state-pill--working {
+  background: var(--working-bg);
+  color: var(--working);
+}
+
+.state-pill--waiting {
+  background: var(--waiting-bg);
+  color: var(--waiting);
+}
+
+.state-pill--error {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.state-pill--exited {
+  gap: 6px;
+  padding: 0 12px 0 8px;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+/* «В истории · вчера, 18:40» — без плашки */
+.state-text {
+  flex: none;
+  font: 600 13px var(--font-ui);
+  color: var(--text-3);
+  white-space: nowrap;
+}

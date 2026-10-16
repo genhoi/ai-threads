@@ -1,0 +1,173 @@
+/* Чип выбора значения */
+.chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px 0 16px;
+  border-radius: 20px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font: 600 13.5px var(--font-ui);
+  white-space: nowrap;
+  transition:
+    background-color var(--fast) var(--out),
+    color var(--fast) var(--out);
+}
+
+.chip:active {
+  transition: none;
+}
+
+.chip__value,
+.chip--plain,
+.chip--icon,
+.chip--agent {
+  color: var(--text);
+}
+
+.chip--icon {
+  padding: 0 12px;
+}
+
+.chip__icon {
+  color: var(--text-2);
+}
+
+.chip--agent {
+  gap: 8px;
+  padding: 0 12px 0 8px;
+}
+
+.chip__chevron {
+  color: var(--text-3);
+  transition:
+    transform var(--fast) var(--out),
+    color var(--fast) var(--out);
+}
+
+.chip:not([aria-disabled='true']):hover,
+.chip.is-hover,
+.chip.is-open {
+  background: var(--surface-3);
+}
+
+.chip.is-open {
+  box-shadow: inset 0 0 0 1px var(--accent-line-strong);
+}
+
+.chip.is-open .chip__chevron {
+  color: var(--accent);
+  transform: rotate(180deg);
+}
+
+.chip[aria-disabled='true'] {
+  padding: 0 16px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--text-disabled);
+}
+
+.chip[aria-disabled='true'] .chip__value,
+.chip[aria-disabled='true'] .chip__icon {
+  color: var(--text-disabled);
+}
+
+/* Фильтр */
+.fchip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text-2);
+  font: 600 13px var(--font-ui);
+  white-space: nowrap;
+  transition:
+    background-color var(--fast) var(--out),
+    color var(--fast) var(--out);
+}
+
+.fchip:active {
+  transition: none;
+}
+
+.fchip:not(.is-on, [aria-disabled='true']):hover,
+.fchip.is-hover:not(.is-on) {
+  background: var(--hover-bg);
+  box-shadow: inset 0 0 0 1px var(--border-hover);
+  color: var(--text);
+}
+
+.fchip.is-on {
+  padding: 0 14px 0 10px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  color: var(--waiting);
+  font-weight: 700;
+}
+
+.fchip[aria-disabled='true'] {
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--text-disabled);
+}
+
+/* Значение с кнопкой «Убрать» */
+.tag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 6px 0 14px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: 400 13px var(--font-mono);
+  white-space: nowrap;
+}
+
+.tag .tag__remove {
+  --hover-bg: var(--surface-3);
+  --press-bg: var(--surface-3);
+  color: var(--text-3);
+}
+
+/* Недавний проект */
+.pchip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px 0 12px;
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text);
+  font: 700 14px var(--font-ui);
+  white-space: nowrap;
+  transition: background-color var(--fast) var(--out);
+}
+
+.pchip:active {
+  transition: none;
+}
+
+.pchip:hover,
+.pchip.is-hover {
+  background: var(--surface-1);
+}
+
+.pchip__icon,
+.pchip__when {
+  color: var(--text-3);
+}
+
+.pchip__when {
+  font-size: 12.5px;
+  font-weight: 600;
+}

@@ -1,0 +1,742 @@
+/* Телефон и узкое окно (до 600 px): список, сессия, новая сессия, история проекта.
+   Значения из макета design/v2/…/Nit-Phone.dc.html (390 × 844). Всё, что нажимают, не меньше 44 px. */
+
+.ph {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--surface-0);
+  font: var(--t-phone);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+/* Экраны лежат друг на друге; новый въезжает справа за --slow, назад — уезжает вправо */
+.ph-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-0);
+}
+
+.ph-enter {
+  --enter-from: translateX(100%);
+  animation: nit-enter var(--slow) var(--out);
+}
+
+.ph-leave {
+  pointer-events: none;
+  animation: ph-out var(--slow) var(--in) forwards;
+}
+
+@keyframes ph-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ph-enter {
+    animation: nit-fade-in var(--slow) var(--out);
+  }
+
+  .ph-leave {
+    animation: nit-exit var(--slow) var(--in) forwards;
+  }
+}
+
+.ph-screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ph-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ph-page > .settings {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
+/* Шапка 64 */
+.ph-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 64px;
+  padding: 0 12px 0 20px;
+}
+
+.ph-head--nav {
+  padding: 0 4px;
+}
+
+.ph-head .btn--icon:not(.btn--primary) {
+  color: var(--text-2);
+}
+
+.ph-head .ph-head__nav.btn--icon {
+  flex: none;
+  color: var(--text);
+}
+
+.ph-head__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ph-head__title {
+  font: 800 18px/24px var(--font-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-head--list .ph-head__title {
+  font: 800 24px/32px var(--font-ui);
+  letter-spacing: var(--ls-page);
+}
+
+.ph-head--session .ph-head__title {
+  font: var(--t-title);
+}
+
+.ph-head__sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font: 600 13px/18px var(--font-ui);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.ph-head__where {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-st--waiting {
+  color: var(--waiting);
+}
+
+.ph-st--working {
+  color: var(--working);
+}
+
+.ph-st--error {
+  color: var(--error);
+}
+
+/* Список */
+.ph-scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 12px calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ph-sechead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 24px 8px 6px;
+  font: 700 15px/22px var(--font-ui);
+  color: var(--text-2);
+}
+
+.ph-sechead__count {
+  color: var(--text-3);
+}
+
+.ph-sechead--waiting {
+  padding: 8px 8px 10px;
+  font: 800 18px/24px var(--font-ui);
+  color: var(--text);
+}
+
+.ph-sechead--waiting .ph-sechead__count {
+  color: var(--waiting);
+}
+
+.ph-list > section:first-child .ph-sechead:not(.ph-sechead--waiting) {
+  padding-top: 8px;
+}
+
+.ph-sechead--day {
+  padding: 20px 8px 6px;
+}
+
+.ph-scroll > section:first-child .ph-sechead--day {
+  padding-top: 8px;
+}
+
+/* Знак состояния вровень с первой строкой 22 px */
+.ph-mark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 22px;
+}
+
+.ph-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ph-card {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--r-sheet);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--text);
+  text-align: left;
+}
+
+.ph-card:active {
+  background: var(--surface-2);
+}
+
+.ph-card__body,
+.ph-work__body,
+.ph-hrow__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ph-card__line1,
+.ph-work__line1,
+.ph-hrow__line1 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ph-card__title,
+.ph-work__title,
+.ph-hrow__title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-card__title {
+  font-weight: 700;
+}
+
+.ph-card__time {
+  flex: none;
+  font: 600 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+.ph-card__time.is-waiting {
+  font-weight: 700;
+  color: var(--waiting);
+}
+
+.ph-card__text {
+  display: -webkit-box;
+  overflow: hidden;
+  font: 500 14px/20px var(--font-ui);
+  color: var(--text-2);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.ph-card__error {
+  font: 600 14px/20px var(--font-ui);
+  color: var(--error);
+}
+
+.ph-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 13px/18px var(--font-ui);
+  color: var(--text-3);
+}
+
+.ph-work,
+.ph-hrow {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 8px;
+  border-radius: var(--r-row);
+  color: var(--text);
+  text-align: left;
+}
+
+.ph-work:active,
+.ph-hrow:active,
+.ph-proj:active {
+  background: var(--surface-1);
+}
+
+.ph-work__time {
+  flex: none;
+  font: 500 13px var(--font-mono);
+  color: var(--working);
+}
+
+.ph-work__cmd {
+  font: 400 13px/18px var(--font-mono);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-proj {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 52px;
+  padding: 0 4px 0 8px;
+  color: var(--text);
+  text-align: left;
+}
+
+.ph-proj + .ph-proj {
+  border-top: 1px solid var(--separator);
+}
+
+.ph-proj__name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-chev.icon {
+  flex: none;
+  color: var(--text-3);
+}
+
+.ph-empty {
+  padding: 32px 8px;
+  font: 500 15px/22px var(--font-ui);
+  color: var(--text-2);
+}
+
+.ph-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px 8px;
+  color: var(--text-2);
+}
+
+/* История проекта */
+.ph-hrow.is-done .ph-hrow__title {
+  color: var(--text-2);
+}
+
+.ph-hrow__time {
+  flex: none;
+  font: 400 12px var(--font-mono);
+  color: var(--text-3);
+}
+
+.ph-hrow__meta {
+  min-width: 0;
+  font: 500 13px/18px var(--font-ui);
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Сессия: вывод терминала текстом */
+.ph-out {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0 12px;
+  padding: 16px;
+  border-radius: var(--r-sheet);
+  background: var(--term-bg);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ph-out__text {
+  margin: auto 0 0;
+  color: var(--term-fg);
+  font: 400 13px/19px var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.ph-out__error {
+  font: 600 13px/18px var(--font-ui);
+  color: var(--error);
+}
+
+/* Быстрые клавиши листаются вбок */
+.ph-keys {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  padding: 12px 12px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ph-keys::-webkit-scrollbar {
+  display: none;
+}
+
+.ph-key {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 22px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: 500 15px var(--font-mono);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.ph-key--word {
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.ph-key--icon {
+  width: 44px;
+  padding: 0;
+}
+
+/* Нажатие меняет фон сразу */
+.ph-key:active {
+  background: var(--surface-3);
+}
+
+.ph-reply {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px calc(16px + env(safe-area-inset-bottom));
+}
+
+.ph-reply__field {
+  flex: 1;
+}
+
+/* Сессия без терминала */
+.ph-closed {
+  flex: 1;
+  min-height: 0;
+  margin: 0 12px;
+  padding: 16px;
+  border-radius: var(--r-sheet);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  overflow-y: auto;
+}
+
+/* Новая сессия */
+.ph-new {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.ph-new__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 4px 12px 12px;
+  overflow-y: auto;
+}
+
+.ph-prompt {
+  flex: none;
+  display: block;
+  width: 100%;
+  min-height: 132px;
+  max-height: 40vh;
+  padding: 16px 18px;
+  border: 0;
+  border-radius: var(--r-dialog);
+  outline: none;
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text);
+  font: 500 16px/24px var(--font-ui);
+  caret-color: var(--accent);
+  resize: none;
+}
+
+.ph-prompt:focus {
+  box-shadow:
+    inset 0 0 0 1px var(--accent-line),
+    0 0 0 4px var(--accent-glow);
+}
+
+.ph-prompt::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+
+.ph-rows {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  border-radius: var(--r-sheet);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  overflow: hidden;
+}
+
+.ph-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 56px;
+  padding: 0 10px 0 18px;
+  color: var(--text);
+  text-align: left;
+}
+
+.ph-row + .ph-row {
+  border-top: 1px solid var(--separator);
+}
+
+.ph-row:not([aria-disabled='true']):active {
+  background: var(--surface-2);
+}
+
+.ph-row[aria-disabled='true'] {
+  padding-right: 18px;
+}
+
+.ph-row[aria-disabled='true'] .ph-row__value {
+  color: var(--text-disabled);
+}
+
+.ph-row__label {
+  flex: 1;
+  color: var(--text-2);
+}
+
+.ph-row__value {
+  min-width: 0;
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-new .seg--lg .seg__track {
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+
+.ph-branch {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  height: 56px;
+  padding: 0 18px;
+  border-radius: var(--r-sheet);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+
+.ph-branch:focus-within {
+  box-shadow:
+    inset 0 0 0 1px var(--accent),
+    var(--ring-focus-field);
+}
+
+.ph-branch__label {
+  flex: none;
+  color: var(--text-2);
+}
+
+.ph-branch__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: 400 15px var(--font-mono);
+  text-align: right;
+  caret-color: var(--accent);
+}
+
+.ph-hint {
+  margin: 0 6px;
+  font: 500 14px/20px var(--font-ui);
+  color: var(--text-2);
+}
+
+.ph-hint.is-error {
+  color: var(--error);
+}
+
+.ph-foot {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 12px calc(16px + env(safe-area-inset-bottom));
+}
+
+/* Большая кнопка внизу: 52 px */
+.ph-big.btn {
+  --h: 52px;
+  --fs: 16px;
+  --fw: 800;
+}
+
+/* Выбор значения: лист снизу */
+.dialog-overlay:has(> .ph-sheet) {
+  align-items: flex-end;
+  padding: 0;
+}
+
+.dialog.ph-sheet {
+  width: 100% !important;
+  max-height: 80%;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  gap: 4px;
+  border-radius: var(--r-dialog) var(--r-dialog) 0 0;
+  --enter-from: translateY(24px);
+}
+
+.ph-sheet .dialog__head {
+  padding: 12px 20px 4px;
+}
+
+.ph-sheet .dialog__title {
+  font: var(--t-title);
+}
+
+.ph-sheet__list {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.ph-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 20px;
+  color: var(--text);
+  font: 600 15px/22px var(--font-ui);
+  text-align: left;
+}
+
+.ph-opt:active {
+  background: var(--surface-2);
+}
+
+.ph-opt:focus-visible {
+  outline-offset: -2px;
+}
+
+.ph-opt[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+.ph-opt__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ph-opt__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-opt__desc {
+  font: 400 12px/16px var(--font-mono);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ph-opt__hint {
+  flex: none;
+  font: 600 13px var(--font-ui);
+  color: var(--text-3);
+}
+
+.ph-opt__check.icon {
+  flex: none;
+  color: var(--accent);
+}
+
+/* Поиск на телефоне: окно на всю ширину, поле 16 px — без увеличения страницы в iOS */
+@media (max-width: 600px) {
+  .dialog-overlay--top {
+    padding: 12px 8px !important;
+  }
+
+  .search .search__input {
+    font-size: 16px;
+  }
+
+  .toast-host {
+    right: 12px;
+    left: 12px;
+  }
+}

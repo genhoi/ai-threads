@@ -1,9 +1,8 @@
-__pycache__/
-*.pyc
-.venv
-.pytest_cache/
-test-results/
+# Сборка
+/nit
+/web/node_modules/
+/web/.dev/
 /tmp/
-# Локальные настройки Claude Code и макеты Claude Design (открываются только в Claude Design).
+# Локальные настройки Claude Code и черновики для Claude Design.
 .claude/
 /design/

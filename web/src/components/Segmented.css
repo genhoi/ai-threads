@@ -1,0 +1,82 @@
+.seg {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.seg__track {
+  display: flex;
+  padding: 4px;
+  border-radius: 20px;
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--separator);
+}
+
+.seg--sunken .seg__track {
+  background: var(--surface-0);
+}
+
+.seg__opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  color: var(--text-2);
+  font: 600 13.5px var(--font-ui);
+  white-space: nowrap;
+  transition:
+    background-color var(--fast) var(--out),
+    color var(--fast) var(--out);
+}
+
+.seg__opt:active {
+  transition: none;
+}
+
+.seg__opt--icon {
+  padding: 0 14px 0 10px;
+}
+
+.seg__opt:not([aria-checked='true'], [aria-disabled='true']):hover,
+.seg__opt.is-hover:not([aria-checked='true']) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.seg__opt[aria-checked='true'] {
+  background: var(--surface-3);
+  color: var(--text);
+  font-weight: 700;
+  cursor: default;
+}
+
+.seg__opt[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+.seg__hint {
+  font: 600 12px/16px var(--font-ui);
+  color: var(--text-3);
+}
+
+/* Телефон: пункты на всю ширину */
+.seg--lg {
+  display: flex;
+  align-items: stretch;
+}
+
+.seg--lg .seg__track {
+  border-radius: 26px;
+}
+
+.seg--lg .seg__opt {
+  flex: 1;
+  justify-content: center;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  font-size: 15px;
+}

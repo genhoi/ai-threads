@@ -1,0 +1,28 @@
+{
+  "agents": {
+    "codex": {
+      "skip_approvals": true,
+      "home": "~/.codex"
+    },
+    "claude": {
+      "enabled": false,
+      "program": "/usr/local/bin/claude"
+    }
+  },
+  "summary": {
+    "agent": "kimi",
+    "timeout": 450
+  },
+  "digest": {
+    "timeout": 900
+  },
+  "search": {
+    "agent": "auto",
+    "timeout": 300
+  },
+  "language": "ru",
+  "temp_dirs": [
+    "/tmp",
+    "~/scratch"
+  ]
+}

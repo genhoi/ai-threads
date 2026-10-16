@@ -1,9 +1,0 @@
-#!/bin/sh
-# Заглушка агента в терминале: печатает свои аргументы и отвечает на каждую строку.
-# Строка «quit» завершает её с кодом 4, «exit0» — с кодом 0.
-echo "fake agent: $*"
-while read -r line; do
-  [ "$line" = "quit" ] && exit 4
-  [ "$line" = "exit0" ] && exit 0
-  echo "got: $line"
-done

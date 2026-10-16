@@ -1,0 +1,44 @@
+/* Лист терминала: фон 1, граница, радиус 18, тень листа, поля 20/24/22.
+   Класс не «terminal»: его xterm ставит своему корню. */
+.term {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--term-bg);
+}
+
+.term--sheet {
+  padding: 20px 24px 22px;
+  border: 1px solid var(--separator);
+  border-radius: var(--r-sheet);
+  box-shadow: var(--shadow-sheet);
+  overflow: hidden;
+}
+
+.term__screen {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.term__screen .xterm {
+  height: 100%;
+}
+
+/* Остаток ниже последней целой строки — цветом терминала, а не чёрным */
+.term__screen .xterm-viewport {
+  background-color: var(--term-bg);
+}
+
+/* Без анимаций: размер меняется сразу */
+.term .xterm,
+.term .xterm * {
+  transition: none !important;
+}
+
+.term .xterm:focus,
+.term .xterm-helper-textarea:focus {
+  outline: none;
+}

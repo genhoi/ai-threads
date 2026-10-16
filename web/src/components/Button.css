@@ -1,0 +1,264 @@
+/* Кнопки из листа «Компоненты». Наведение и отпускание — за --fast, нажатие — сразу.
+   Классы is-hover и is-active повторяют :hover и :active для галереи. */
+.btn {
+  --pl: 16px;
+  --pr: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap);
+  height: var(--h);
+  padding: 0 var(--pr) 0 var(--pl);
+  border: 0;
+  border-radius: calc(var(--h) / 2);
+  font-family: var(--font-ui);
+  font-size: var(--fs);
+  font-weight: var(--fw, 600);
+  line-height: normal;
+  white-space: nowrap;
+  user-select: none;
+  transition:
+    background-color var(--fast) var(--out),
+    color var(--fast) var(--out);
+}
+
+.btn:active,
+.btn.is-active {
+  transition: none;
+}
+
+.btn.is-loading {
+  cursor: progress;
+}
+
+/* Размеры */
+.btn--32 {
+  --h: 32px;
+  --gap: 6px;
+  --fs: 13px;
+  --pl: 12px;
+  --pr: 12px;
+}
+
+.btn--36 {
+  --h: 36px;
+  --gap: 6px;
+  --fs: 13px;
+  --pl: 12px;
+  --pr: 12px;
+}
+
+.btn--40 {
+  --h: 40px;
+  --gap: 8px;
+  --fs: 14px;
+  --pl: 16px;
+  --pr: 16px;
+}
+
+.btn--48 {
+  --h: 48px;
+  --gap: 10px;
+  --fs: 14px;
+  --pl: 20px;
+  --pr: 20px;
+}
+
+.btn--primary.btn--32,
+.btn--regular.btn--32 {
+  --pl: 14px;
+  --pr: 14px;
+}
+
+.btn--primary.btn--40,
+.btn--regular.btn--40 {
+  --pl: 18px;
+  --pr: 18px;
+}
+
+.btn--primary.btn--48,
+.btn--regular.btn--48 {
+  --pl: 24px;
+  --pr: 24px;
+}
+
+/* Иконка слева уменьшает левый отступ */
+.btn--32.btn--lead,
+.btn--36.btn--lead {
+  --pl: 10px;
+}
+
+.btn--40.btn--lead {
+  --pl: 14px;
+}
+
+.btn--quiet.btn--40.btn--lead {
+  --pl: 12px;
+}
+
+.btn--48.btn--lead {
+  --pl: 18px;
+}
+
+.btn--quiet.btn--48.btn--lead {
+  --pl: 16px;
+}
+
+/* Подсказка клавиш справа: «Запустить Ctrl+Enter» */
+.btn--hint {
+  --pr: 18px;
+}
+
+.btn__hint {
+  font: 500 11.5px var(--font-mono);
+  color: var(--accent-ink-dim);
+}
+
+.btn--block {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Основная */
+.btn--primary {
+  --fw: 700;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn--primary.btn--48 {
+  --fw: 800;
+  --fs: 15px;
+}
+
+.btn--primary:not([aria-disabled='true'], .is-loading):hover,
+.btn--primary.is-hover {
+  background: var(--accent-hover);
+}
+
+.btn--primary:not([aria-disabled='true'], .is-loading):active,
+.btn--primary.is-active {
+  background: var(--accent-active);
+}
+
+.btn--primary[aria-disabled='true'] {
+  background: var(--surface-disabled);
+  color: var(--text-disabled);
+}
+
+/* Обычная */
+.btn--regular {
+  --fw: 600;
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text);
+}
+
+.btn--regular:not([aria-disabled='true'], .is-loading):hover,
+.btn--regular.is-hover {
+  background: var(--surface-2);
+}
+
+.btn--regular:not([aria-disabled='true'], .is-loading):active,
+.btn--regular.is-active {
+  background: var(--surface-3);
+}
+
+.btn--regular[aria-disabled='true'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--separator);
+  color: var(--text-disabled);
+}
+
+.btn--regular.is-loading {
+  color: var(--text-2);
+}
+
+/* Тихая и кнопка-иконка: фон наведения зависит от поверхности (--hover-bg, --press-bg) */
+.btn--quiet,
+.btn--icon {
+  --fw: 600;
+  background: transparent;
+  color: var(--text-2);
+}
+
+.btn--quiet.is-pressed,
+.btn--icon.is-pressed {
+  background: var(--press-bg);
+}
+
+.btn--quiet:not([aria-disabled='true'], .is-loading):hover,
+.btn--quiet.is-hover,
+.btn--icon:not(.btn--primary, [aria-disabled='true'], .is-loading):hover,
+.btn--icon:not(.btn--primary).is-hover {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+.btn--quiet:not([aria-disabled='true'], .is-loading):active,
+.btn--quiet.is-active,
+.btn--icon:not(.btn--primary, [aria-disabled='true'], .is-loading):active,
+.btn--icon:not(.btn--primary).is-active {
+  background: var(--press-bg);
+  color: var(--text);
+}
+
+.btn--quiet.is-pressed:hover,
+.btn--icon.is-pressed:hover {
+  background: var(--press-bg);
+}
+
+.btn--quiet[aria-disabled='true'],
+.btn--icon[aria-disabled='true'] {
+  color: var(--text-disabled);
+}
+
+/* Янтарное действие в сообщении */
+.btn--quiet.btn--accent {
+  --fw: 700;
+  color: var(--waiting);
+}
+
+.btn--quiet.btn--accent:not([aria-disabled='true']):hover,
+.btn--quiet.btn--accent.is-hover,
+.btn--quiet.btn--accent:not([aria-disabled='true']):active,
+.btn--quiet.btn--accent.is-active {
+  color: var(--waiting);
+}
+
+/* Кнопка-иконка */
+.btn--icon {
+  justify-content: center;
+  width: var(--h);
+  padding: 0;
+  flex: none;
+}
+
+.btn--icon-24 {
+  --h: 24px;
+}
+
+.btn--icon-28 {
+  --h: 28px;
+}
+
+.btn--icon-32 {
+  --h: 32px;
+}
+
+.btn--icon-36 {
+  --h: 36px;
+}
+
+.btn--icon-40 {
+  --h: 40px;
+}
+
+.btn--icon-48 {
+  --h: 48px;
+}
+
+/* Янтарный круг на телефоне */
+.btn--icon.btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
