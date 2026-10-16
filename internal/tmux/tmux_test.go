@@ -170,6 +170,21 @@ func TestOpenFails(t *testing.T) {
 	}
 }
 
+// Сервер tmux запускается через начало команды, как через systemd-run в службе: окружение,
+// папка и команда агента доходят до tmux как есть.
+func TestOpenThroughServerScope(t *testing.T) {
+	tmuxtest.Server(t)
+	t.Cleanup(tmux.SetServerScope([]string{"env"}))
+	dir := t.TempDir()
+	pane, err := tmux.Open(tmux.OpenOptions{Name: "nit-scope", Cwd: dir, Argv: []string{"sleep", "60"}, Key: "claude:scope"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pane.Dead || pane.Key != "claude:scope" || pane.Cwd != dir {
+		t.Fatalf("pane = %+v", pane)
+	}
+}
+
 func TestListWithoutServer(t *testing.T) {
 	tmuxtest.Server(t)
 	panes, err := tmux.List()

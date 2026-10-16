@@ -62,7 +62,9 @@ nit                 # http://127.0.0.1:8765, порт меняется флаг�
 ```
 
 Чтобы «Нить» работала и после закрытия терминала, поставьте её службой systemd. PATH в службу нужно
-передать свой: у systemd он короче, и агентов в нём нет.
+передать свой: у systemd он короче, и агентов в нём нет. Перезапуск службы не останавливает агентов:
+«Нить» запускает tmux отдельно от службы через `systemd-run --scope`. `KillMode=process` страхует,
+если `systemd-run` не сработает: тогда systemd завершил бы tmux вместе с «Нитью».
 
 ```bash
 cat > ~/.config/systemd/user/nit.service <<EOF
@@ -75,6 +77,7 @@ ExecStart=%h/.local/bin/nit
 Environment="PATH=$PATH"
 Environment=SHELL=/bin/bash
 Environment=LANG=C.UTF-8
+KillMode=process
 Restart=on-failure
 
 [Install]

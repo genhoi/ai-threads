@@ -1,7 +1,9 @@
 // Package tmux — терминалы агентов: сессии tmux на своём сервере «Нити».
 //
 // Агент живёт в сессии tmux, а не в процессе «Нити»: закрытая вкладка браузера, перезапуск «Нити»
-// или оборванная связь его не останавливают. Сервер tmux свой (сокет ai-threads, без ~/.tmux.conf),
+// или оборванная связь его не останавливают. Если «Нить» работает службой systemd, сервер tmux
+// запускается в отдельной группе процессов, иначе systemctl restart завершил бы его вместе со
+// службой. Сервер tmux свой (сокет ai-threads, без ~/.tmux.conf),
 // поэтому настройки ниже не задевают tmux человека: префикса нет и Ctrl+B уходит агенту, строки
 // состояния нет, колесо мыши листает историю, а после выхода агента окно остаётся, чтобы был виден
 // код выхода. У каждой сессии «Нити» есть метка @nit_key — ключ сессии агента.
@@ -12,11 +14,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -94,11 +99,44 @@ func env() []string {
 	return append(out, "TERM=xterm-256color")
 }
 
-func run(args ...string) (string, error) {
+// serverScope — начало команды, которая запускает сервер tmux в своей группе процессов systemd,
+// или nil. Сервер tmux, запущенный из службы systemd, попадает в группу процессов службы, и
+// systemctl restart или stop завершает его вместе со всеми агентами. systemd-run --scope даёт ему
+// свою группу. Если systemd-run не работает, сервер запускается как обычно.
+var serverScope = sync.OnceValue(func() []string {
+	raw, err := os.ReadFile("/proc/self/cgroup")
+	if err != nil || !inService(string(raw)) {
+		return nil
+	}
+	scope := []string{"systemd-run", "--user", "--scope", "--quiet", "--collect"}
+	if out, err := exec.Command(scope[0], append(scope[1:], "true")...).CombinedOutput(); err != nil {
+		log.Printf("tmux: systemd-run does not work, restarting the service will stop the agents: %v %s", err, bytes.TrimSpace(out))
+		return nil
+	}
+	return append(scope, "--description=Nit: tmux server")
+})
+
+// inService — работает ли процесс службой systemd: его группа процессов в /proc/self/cgroup —
+// юнит .service. В терминале это session-N.scope, в панели tmux — tmux-spawn-….scope.
+func inService(cgroup string) bool {
+	for line := range strings.Lines(cgroup) {
+		parts := strings.SplitN(strings.TrimSpace(line), ":", 3)
+		if len(parts) == 3 && (parts[1] == "" || parts[1] == "name=systemd") && strings.HasSuffix(parts[2], ".service") {
+			return true
+		}
+	}
+	return false
+}
+
+func run(args ...string) (string, error) { return runIn(nil, args...) }
+
+// runIn — run, но перед tmux стоит prefix: так сервер tmux запускается через systemd-run.
+func runIn(prefix []string, args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	// -f /dev/null: сервер «Нити» не читает ~/.tmux.conf человека.
-	cmd := exec.CommandContext(ctx, "tmux", append(append(base(), "-f", os.DevNull), args...)...)
+	argv := slices.Concat(prefix, []string{"tmux"}, base(), []string{"-f", os.DevNull}, args)
+	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	cmd.Env = env()
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -146,6 +184,10 @@ func Open(o OpenOptions) (Pane, error) {
 	if info, err := os.Stat(o.Cwd); err != nil || !info.IsDir() {
 		return Pane{}, fmt.Errorf("folder %s does not exist", o.Cwd)
 	}
+	// Через systemd-run отсутствие tmux не распознать по ошибке запуска
+	if !Available() {
+		return Pane{}, ErrNoTmux
+	}
 	cols, rows := Clamp(o.Cols, 20, 500, 120), Clamp(o.Rows, 5, 200, 32)
 	// Агент запускается через интерактивную оболочку человека: так подхватываются PATH и алиасы
 	// из ~/.bashrc, как в обычной вкладке терминала. Код выхода оболочки — код выхода агента.
@@ -166,7 +208,8 @@ func Open(o OpenOptions) (Pane, error) {
 	if o.Key != "" {
 		args = append(args, ";", "set-option", "-t", target(o.Name), KeyOption, arg(o.Key))
 	}
-	_, err := run(args...)
+	// Только эта команда запускает сервер tmux, если его ещё нет
+	_, err := runIn(serverScope(), args...)
 	if err != nil {
 		return Pane{}, err
 	}

@@ -64,7 +64,9 @@ nit                 # http://127.0.0.1:8765, change the port with -port
 ```
 
 To keep Nit running after you close the terminal, install it as a systemd user service. Pass your own
-PATH: systemd's is shorter and doesn't include the agents.
+PATH: systemd's is shorter and doesn't include the agents. Restarting the service doesn't stop the
+agents: Nit starts tmux outside the service with `systemd-run --scope`. `KillMode=process` is the
+fallback if `systemd-run` fails: then systemd would stop tmux together with Nit.
 
 ```bash
 cat > ~/.config/systemd/user/nit.service <<EOF
@@ -77,6 +79,7 @@ ExecStart=%h/.local/bin/nit
 Environment="PATH=$PATH"
 Environment=SHELL=/bin/bash
 Environment=LANG=C.UTF-8
+KillMode=process
 Restart=on-failure
 
 [Install]
