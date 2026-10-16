@@ -535,6 +535,11 @@
   margin: 0 16px 16px 0;
 }
 
+/* Терминал сессии, в которую заходили недавно: скрыт, но подключён */
+.sess-term[hidden] {
+  display: none;
+}
+
 .sess.is-wide .sess-term,
 .sess.is-wide .hcard {
   margin-left: 16px;

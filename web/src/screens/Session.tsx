@@ -54,28 +54,65 @@ export function SessionScreen({ sessionKey }: { sessionKey: string }) {
   return <SessionView_ s={session} />;
 }
 
+/** Сколько терминалов держать подключёнными: открытый и те, в которые заходили последними */
+const TERMINALS_KEPT = 5;
+
+interface KeptTerminal {
+  /** Ключ, с которым терминал открыли: временный ключ новой сессии меняется, экран остаётся */
+  id: string;
+  key: string;
+  used: number;
+}
+
+let useCounter = 0;
+
+/**
+ * Терминалы сессий, в которые недавно заходили. Скрытый терминал остаётся подключён, и переход
+ * к нему не создаёт xterm заново и не ждёт сервер. Закрытые на сервере отпускаются сразу,
+ * лишние — начиная с самого давнего
+ */
+function useKeptTerminals(s: SessionView): KeptTerminal[] {
+  const kept = useRef<KeptTerminal[]>([]);
+  // Перерисоваться, когда терминал одной из скрытых сессий закрылся
+  useApp((st) => kept.current.map((t) => (sessionOf(st, st.swaps[t.key] ?? t.key)?.terminal ? '1' : '0')).join(''));
+  const st = store.get();
+  let list = kept.current.map((t) => {
+    const real = st.swaps[t.key];
+    return real ? { ...t, key: real } : t;
+  });
+  list = list.filter((t) => t.key !== s.key && sessionOf(st, t.key)?.terminal);
+  if (s.terminal) {
+    const prev = kept.current.find((t) => t.key === s.key || st.swaps[t.key] === s.key);
+    list.push({ id: prev?.id ?? s.key, key: s.key, used: ++useCounter });
+  }
+  // У открытого used самый большой: он не уходит никогда
+  while (list.length > TERMINALS_KEPT) {
+    const oldest = list.reduce((a, b) => (b.used < a.used ? b : a));
+    list = list.filter((t) => t !== oldest);
+  }
+  // Порядок как при добавлении: Preact не переставляет узлы с холстами WebGL
+  const order = new Map(kept.current.map((t, i) => [t.id, i]));
+  list.sort((a, b) => (order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity));
+  kept.current = list;
+  return list;
+}
+
 function SessionView_({ s }: { s: SessionView }) {
   const full = useApp((st) => st.full);
   const detailsOpen = useApp((st) => st.detailsOpen);
   const sidebarHidden = useApp((st) => st.sidebarHidden);
-  const swaps = useApp((st) => st.swaps);
-
-  // Тот же экран терминала, пока временный ключ меняется на настоящий
-  const termKey = useRef(s.key);
-  const prevKey = useRef(s.key);
-  if (prevKey.current !== s.key) {
-    if (swaps[prevKey.current] !== s.key) termKey.current = s.key;
-    prevKey.current = s.key;
-  }
+  const terminals = useKeptTerminals(s);
 
   useSeen(s);
 
-  const showTerminal = s.terminal;
   return (
     <main class={`sess${full ? ' is-full' : ''}${sidebarHidden ? ' is-wide' : ''}`}>
       {!full && <Header s={s} />}
       <div class="sess__body">
-        {showTerminal ? <TerminalPane key={termKey.current} sessionKey={s.key} alive={s.terminal} /> : <HistoryCard s={s} />}
+        {terminals.map((t) => (
+          <TerminalPane key={t.id} sessionKey={t.key} alive={t.key === s.key ? s.terminal : true} active={t.key === s.key} />
+        ))}
+        {!s.terminal && <HistoryCard s={s} />}
       </div>
       {full && <FullPill s={s} />}
       {detailsOpen && !full && <DetailsPanel s={s} />}

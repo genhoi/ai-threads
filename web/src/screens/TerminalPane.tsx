@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { transport, type TerminalSocket } from '../api/transport';
 import { Icon, Terminal, type TerminalHandle } from '../components';
 import { goNextWaiting } from '../app/actions';
@@ -8,6 +8,8 @@ interface TerminalPaneProps {
   sessionKey: string;
   /** Терминал открыт на сервере: без него не переподключаться */
   alive: boolean;
+  /** Терминал на экране. Скрытый остаётся подключён: к нему возвращаются без переподключения */
+  active?: boolean;
 }
 
 type LinkState = 'connecting' | 'open' | 'lost' | 'closed';
@@ -24,8 +26,10 @@ function socketUrl(key: string, cols: number, rows: number): string {
  * Терминал агента: xterm.js и WebSocket к tmux. Вывод и ввод — двоичными сообщениями, размер —
  * {"type":"resize"}. Обрыв — переподключение с паузой; код 1000 — терминал закрыли, ждать события.
  */
-export function TerminalPane({ sessionKey, alive }: TerminalPaneProps) {
+export function TerminalPane({ sessionKey, alive, active = true }: TerminalPaneProps) {
   const term = useRef<TerminalHandle | null>(null);
+  // xterm создан и подогнан: до этого его размер неизвестен
+  const ready = useRef(false);
   const sock = useRef<TerminalSocket | null>(null);
   const keyRef = useRef(sessionKey);
   const aliveRef = useRef(alive);
@@ -41,12 +45,13 @@ export function TerminalPane({ sessionKey, alive }: TerminalPaneProps) {
     if (s && s.readyState <= 1) s.close(1000);
   };
 
-  const connect = () => {
+  /** cols и rows — размер, пока xterm ещё создаётся; вывод до его готовности копит Terminal */
+  const connect = (cols?: number, rows?: number) => {
     const t = term.current;
-    if (!t || !aliveRef.current) return;
+    if (!t || !aliveRef.current || (!ready.current && !cols)) return;
     disconnect();
     setLink('connecting');
-    const s = transport.terminal(socketUrl(keyRef.current, t.cols || 80, t.rows || 24));
+    const s = transport.terminal(socketUrl(keyRef.current, cols ?? (t.cols || 80), rows ?? (t.rows || 24)));
     s.binaryType = 'arraybuffer';
     sock.current = s;
     let opened = false;
@@ -55,8 +60,10 @@ export function TerminalPane({ sessionKey, alive }: TerminalPaneProps) {
       opened = true;
       retry.current.count = 0;
       setLink('open');
-      // Размер мог смениться, пока шло подключение
-      if (term.current) s.send(JSON.stringify({ type: 'resize', cols: term.current.cols, rows: term.current.rows }));
+      // Размер мог смениться, пока шло подключение. У xterm, который ещё создаётся, размера нет:
+      // его пришлёт onResize
+      const t = term.current;
+      if (t && t.cols > 0 && t.rows > 0) s.send(JSON.stringify({ type: 'resize', cols: t.cols, rows: t.rows }));
     };
     s.onmessage = (e) => {
       if (sock.current !== s || typeof e.data === 'string') return;
@@ -98,6 +105,11 @@ export function TerminalPane({ sessionKey, alive }: TerminalPaneProps) {
 
   useEffect(() => () => disconnect(), []);
 
+  // Снова на экране — клавиатура ему
+  useLayoutEffect(() => {
+    if (active) term.current?.focus();
+  }, [active]);
+
   // «Нет связи» — только если подключение затянулось
   useEffect(() => {
     if (link === 'open' || link === 'closed') {
@@ -109,13 +121,16 @@ export function TerminalPane({ sessionKey, alive }: TerminalPaneProps) {
   }, [link]);
 
   return (
-    <div class="sess-term">
+    <div class="sess-term" hidden={!active}>
       <Terminal
-        autoFocus
+        ref={term}
+        autoFocus={active}
         class="sess-term__sheet"
-        onReady={(h) => {
-          term.current = h;
-          connect();
+        onSizeKnown={({ cols, rows }) => connect(cols, rows)}
+        onReady={() => {
+          ready.current = true;
+          // Уже подключаемся по известному размеру — настоящий уйдёт в onResize
+          if (!sock.current) connect();
         }}
         onData={(d) => {
           const s = sock.current;
@@ -137,7 +152,7 @@ export function TerminalPane({ sessionKey, alive }: TerminalPaneProps) {
           return true;
         }}
       />
-      {slow && alive && (
+      {slow && alive && active && (
         <div class="sess-term__link" role="status">
           <Icon name="progress_activity" size={16} spin />
           {link === 'lost' ? 'Нет связи с терминалом, подключаюсь' : 'Подключаюсь к терминалу'}

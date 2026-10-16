@@ -30,7 +30,7 @@ export { Segmented, type SegmentedOption, type SegmentedProps } from './Segmente
 export { SessionRow, type SessionRowProps } from './SessionRow';
 export { StatePill, type StatePillProps } from './StatePill';
 export { StatusMark, type StatusMarkProps } from './StatusMark';
-export { Terminal, type TerminalHandle, type TerminalProps } from './Terminal';
+export { preloadTerminal, Terminal, type TerminalHandle, type TerminalProps } from './Terminal';
 export { ToastBox, ToastHost, toast, type ToastBoxProps, type ToastKind, type ToastOptions } from './Toast';
 export { Checkbox, Switch, type CheckboxProps, type SwitchProps } from './Toggles';
 export { Tooltip, TooltipBox, type TooltipBoxProps, type TooltipProps } from './Tooltip';

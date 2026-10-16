@@ -1,6 +1,6 @@
 import type { ComponentType } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { Button, IconButton, ToastHost } from '../components';
+import { Button, IconButton, preloadTerminal, ToastHost } from '../components';
 import { toggleSidebar } from '../app/actions';
 import { needsYou } from '../app/derive';
 import { loadBootstrap } from '../app/sync';
@@ -48,6 +48,14 @@ export function App() {
   const revoked = useApp((s) => s.revoked);
   const phone = usePhoneLayout();
   useDocumentTitle();
+
+  // xterm и шрифт терминала — заранее, пока браузер свободен: первая открытая сессия их не ждёт.
+  // На телефоне терминал текстом, xterm там не нужен
+  useEffect(() => {
+    if (phone) return;
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(preloadTerminal, { timeout: 3000 });
+    else setTimeout(preloadTerminal, 1500);
+  }, [phone]);
 
   // Телефон отключили на компьютере: вместо приложения — что случилось и как подключиться снова
   if (revoked) return <Revoked />;
